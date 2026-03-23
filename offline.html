@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hors-ligne - MacAssist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #000; color: white; font-family: -apple-system, system-ui, sans-serif; }
+    </style>
+</head>
+<body class="h-screen flex items-center justify-center p-6 overflow-hidden">
+    <div class="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,_#0f172a_0%,_#000_100%)] opacity-60"></div>
+    
+    <div class="relative z-10 text-center max-w-sm">
+        <div class="w-20 h-20 bg-neutral-900 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-white/10 shadow-2xl">
+            <svg class="w-10 h-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 4.243a5 5 0 010-7.072M5.636 18.364a9 9 0 010-12.728M12 12v.01" />
+            </svg>
+        </div>
+        
+        <h1 class="text-3xl font-black uppercase tracking-tighter mb-4 italic">Connexion Interrompue</h1>
+        <p class="text-neutral-500 text-[10px] font-black uppercase tracking-[0.4em] mb-10 leading-relaxed">
+            L'Agent MAC a besoin d'Internet pour effectuer les diagnostics. Veuillez vérifier votre réseau.
+        </p>
+        
+        <button onclick="window.location.reload()" class="w-full py-5 bg-white text-black rounded-xl font-black uppercase tracking-[0.5em] text-[10px] shadow-2xl active:scale-95 transition-all">
+            Réessayer la Connexion
+        </button>
+    </div>
+</body>
+</html>

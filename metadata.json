@@ -1,0 +1,8 @@
+{
+  "name": "Copy of Vestee Support - Agent Vestee (Flash 3)",
+  "description": "Assistant de support technique Mac en temps réel utilisant Gemini Live API & Gemini 3 Flash.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
