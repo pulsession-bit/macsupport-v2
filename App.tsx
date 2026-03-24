@@ -668,7 +668,7 @@ const App: React.FC = () => {
               {/* Note: Kept same as previous to save space, assuming no change needed in Live Component structure */}
               <div className="flex-1 relative flex flex-col h-full overflow-hidden">
                   <div className="absolute inset-0 z-0">
-                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover opacity-30 grayscale blur-sm" />
+                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                     <canvas ref={canvasRef} className="hidden" />
                   </div>
                   
