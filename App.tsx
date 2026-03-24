@@ -148,6 +148,9 @@ const App: React.FC = () => {
   const userAnalyserRef = useRef<AnalyserNode | null>(null);
   const frameIntervalRef = useRef<number | null>(null);
   const reconnectIntervalRef = useRef<number | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
 
   // Auth Listener
   useEffect(() => {
@@ -266,6 +269,35 @@ const App: React.FC = () => {
      setActiveTab('live');
   };
 
+  const toggleScreenShare = useCallback(async () => {
+    if (isScreenSharing) {
+      screenStreamRef.current?.getTracks().forEach(t => t.stop());
+      screenStreamRef.current = null;
+      if (videoRef.current && mediaStreamRef.current) {
+        videoRef.current.srcObject = mediaStreamRef.current;
+      }
+      setIsScreenSharing(false);
+    } else {
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        screenStreamRef.current = screenStream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = screenStream;
+        }
+        screenStream.getVideoTracks()[0].onended = () => {
+          screenStreamRef.current = null;
+          if (videoRef.current && mediaStreamRef.current) {
+            videoRef.current.srcObject = mediaStreamRef.current;
+          }
+          setIsScreenSharing(false);
+        };
+        setIsScreenSharing(true);
+      } catch (e) {
+        console.warn("Partage d'écran annulé ou refusé", e);
+      }
+    }
+  }, [isScreenSharing]);
+
   const disconnect = useCallback(() => {
     // Clear Reconnect Interval
     if (reconnectIntervalRef.current) {
@@ -274,6 +306,10 @@ const App: React.FC = () => {
     }
 
     if (frameIntervalRef.current) clearInterval(frameIntervalRef.current);
+    screenStreamRef.current?.getTracks().forEach(t => t.stop());
+    screenStreamRef.current = null;
+    setIsScreenSharing(false);
+    mediaStreamRef.current = null;
     sessionPromiseRef.current?.then(s => s.close());
     sessionPromiseRef.current = null;
     
@@ -332,6 +368,7 @@ const App: React.FC = () => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
+      mediaStreamRef.current = stream;
 
       // 2. Setup Audio Contexts (Reuse if pre-initialized)
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -357,7 +394,7 @@ const App: React.FC = () => {
         ? `\n\n[SYSTEM_DATA_INJECTION]\nCONTEXTE TECHNIQUE PRÉ-ÉTABLI (Utiliser pour le diagnostic, ne pas lire le JSON à haute voix, confirmer simplement "Je vois le contexte" si pertinent):\n${JSON.stringify(techContext)}`
         : "";
 
-      const sessionPromise = ai.live.connect({
+      const sessionPromise = sessionPromiseRef.current = ai.live.connect({
         model: MODEL_NAME,
         config: {
           responseModalities: [Modality.AUDIO],
@@ -389,6 +426,7 @@ const App: React.FC = () => {
             source.connect(userAnalyserRef.current!);
             
             scriptProcessor.onaudioprocess = (e) => {
+              if (!sessionPromiseRef.current) return;
               const inputData = e.inputBuffer.getChannelData(0);
               const pcmBlob = createBlob(inputData);
               sessionPromise.then(s => s.sendRealtimeInput({ media: pcmBlob }));
@@ -407,15 +445,15 @@ const App: React.FC = () => {
             const ctx = canvasRef.current?.getContext('2d');
             if (videoTrack && ctx && videoRef.current) {
               frameIntervalRef.current = window.setInterval(() => {
+                if (!sessionPromiseRef.current) return;
                 if (videoRef.current && canvasRef.current && videoRef.current.readyState === 4) {
                   canvasRef.current.width = videoRef.current.videoWidth / 4;
                   canvasRef.current.height = videoRef.current.videoHeight / 4;
                   ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
                   canvasRef.current.toBlob(async (blob) => {
-                    if (blob) {
-                      const base64Data = await blobToBase64(blob);
-                      sessionPromise.then(s => s.sendRealtimeInput({ media: { data: base64Data, mimeType: 'image/jpeg' } }));
-                    }
+                    if (!sessionPromiseRef.current || !blob) return;
+                    const base64Data = await blobToBase64(blob);
+                    sessionPromise.then(s => s.sendRealtimeInput({ media: { data: base64Data, mimeType: 'image/jpeg' } }));
                   }, 'image/jpeg', 0.5);
                 }
               }, 1000);
@@ -691,8 +729,20 @@ const App: React.FC = () => {
                       </div>
                   </div>
 
-                   <div className="relative z-10 p-8 flex justify-center">
-                       <button 
+                   <div className="relative z-10 p-8 flex justify-center gap-4">
+                       {status === 'connected' && (
+                         <button
+                           onClick={toggleScreenShare}
+                           className={`px-6 py-5 border rounded-full text-[9px] font-black uppercase tracking-[0.4em] transition-all shadow-lg backdrop-blur-sm ${
+                             isScreenSharing
+                               ? 'bg-blue-600/20 border-blue-600/40 text-blue-400 hover:bg-blue-600 hover:text-white'
+                               : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
+                           }`}
+                         >
+                           {isScreenSharing ? 'Arrêter partage' : 'Partager écran'}
+                         </button>
+                       )}
+                       <button
                         onClick={() => { disconnect(); setActiveTab('guided'); }}
                         className="px-10 py-5 bg-red-600/10 border border-red-600/20 text-red-500 rounded-full text-[9px] font-black uppercase tracking-[0.4em] hover:bg-red-600 hover:text-white transition-all shadow-lg backdrop-blur-sm"
                        >
