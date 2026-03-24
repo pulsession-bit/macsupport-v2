@@ -430,7 +430,9 @@ const App: React.FC = () => {
                 // Sauvegarder le stream d'écran avant disconnect pour le restaurer après
                 if (screenStreamRef.current?.active) {
                     pendingScreenStreamRef.current = screenStreamRef.current;
-                    screenStreamRef.current = null; // empêche disconnect de le stopper
+                    screenStreamRef.current = null;
+                    // Détacher de videoRef pour que disconnect() ne stoppe pas les tracks
+                    if (videoRef.current) videoRef.current.srcObject = null;
                 }
                 disconnect();
                 // Trigger a reconnect after a short buffer
@@ -464,7 +466,7 @@ const App: React.FC = () => {
             // Video frames
             const videoTrack = stream.getVideoTracks()[0];
             const ctx = canvasRef.current?.getContext('2d');
-            if (videoTrack && ctx && videoRef.current) {
+            if ((videoTrack || screenStreamRef.current) && ctx && videoRef.current) {
               frameIntervalRef.current = window.setInterval(() => {
                 if (!sessionPromiseRef.current) return;
                 if (videoRef.current && canvasRef.current && videoRef.current.readyState === 4) {
