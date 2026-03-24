@@ -151,6 +151,7 @@ const App: React.FC = () => {
   const screenStreamRef = useRef<MediaStream | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const isReconnectRef = useRef<boolean>(false);
+  const pendingScreenStreamRef = useRef<MediaStream | null>(null);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
 
   // Auth Listener
@@ -412,12 +413,25 @@ const App: React.FC = () => {
         callbacks: {
           onopen: () => {
             setStatus('connected');
-            
+
+            // Restaurer le partage d'écran si actif avant le reconnect
+            if (pendingScreenStreamRef.current?.active) {
+                screenStreamRef.current = pendingScreenStreamRef.current;
+                if (videoRef.current) videoRef.current.srcObject = pendingScreenStreamRef.current;
+                setIsScreenSharing(true);
+                pendingScreenStreamRef.current = null;
+            }
+
             // --- AUTO-REFRESH MECHANISM (270s) ---
             if (reconnectIntervalRef.current) clearInterval(reconnectIntervalRef.current);
             reconnectIntervalRef.current = window.setInterval(() => {
                 console.log("♻️ Auto-refreshing session to prevent timeout (270s)...");
                 isReconnectRef.current = true;
+                // Sauvegarder le stream d'écran avant disconnect pour le restaurer après
+                if (screenStreamRef.current?.active) {
+                    pendingScreenStreamRef.current = screenStreamRef.current;
+                    screenStreamRef.current = null; // empêche disconnect de le stopper
+                }
                 disconnect();
                 // Trigger a reconnect after a short buffer
                 setTimeout(() => {
