@@ -408,16 +408,16 @@ const App: React.FC = () => {
           onopen: () => {
             setStatus('connected');
             
-            // --- AUTO-REFRESH MECHANISM (110s) ---
+            // --- AUTO-REFRESH MECHANISM (270s) ---
             if (reconnectIntervalRef.current) clearInterval(reconnectIntervalRef.current);
             reconnectIntervalRef.current = window.setInterval(() => {
-                console.log("♻️ Auto-refreshing session to prevent timeout (110s)...");
-                disconnect(); 
+                console.log("♻️ Auto-refreshing session to prevent timeout (270s)...");
+                disconnect();
                 // Trigger a reconnect after a short buffer
                 setTimeout(() => {
                     setReconnectTrigger(prev => prev + 1);
                 }, 500);
-            }, 110000); 
+            }, 270000);
             // -------------------------------------
 
             // Setup Microphone Processing
