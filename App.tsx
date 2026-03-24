@@ -279,7 +279,8 @@ const App: React.FC = () => {
       setIsScreenSharing(false);
     } else {
       try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        screenStream.getAudioTracks().forEach(t => t.stop());
         screenStreamRef.current = screenStream;
         if (videoRef.current) {
           videoRef.current.srcObject = screenStream;
