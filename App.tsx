@@ -150,6 +150,7 @@ const App: React.FC = () => {
   const reconnectIntervalRef = useRef<number | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const isReconnectRef = useRef<boolean>(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
 
   // Auth Listener
@@ -391,15 +392,19 @@ const App: React.FC = () => {
       userAnalyserRef.current.fftSize = 256;
 
       // 5. Connect to Gemini Live with Context Injection
-      const contextPrompt = Object.keys(techContext).length > 0 
+      const contextPrompt = Object.keys(techContext).length > 0
         ? `\n\n[SYSTEM_DATA_INJECTION]\nCONTEXTE TECHNIQUE PRÉ-ÉTABLI (Utiliser pour le diagnostic, ne pas lire le JSON à haute voix, confirmer simplement "Je vois le contexte" si pertinent):\n${JSON.stringify(techContext)}`
         : "";
+      const reconnectPrompt = isReconnectRef.current
+        ? `\n\n[RECONNEXION SESSION] Tu reprends une session en cours. NE PAS répéter le message d'ouverture. Reste silencieux et attends la prochaine intervention de l'utilisateur.`
+        : "";
+      isReconnectRef.current = false;
 
       const sessionPromise = sessionPromiseRef.current = ai.live.connect({
         model: MODEL_NAME,
         config: {
           responseModalities: [Modality.AUDIO],
-          systemInstruction: SYSTEM_INSTRUCTIONS[language] + contextPrompt,
+          systemInstruction: SYSTEM_INSTRUCTIONS[language] + contextPrompt + reconnectPrompt,
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
           inputAudioTranscription: {},
           outputAudioTranscription: {}
@@ -412,6 +417,7 @@ const App: React.FC = () => {
             if (reconnectIntervalRef.current) clearInterval(reconnectIntervalRef.current);
             reconnectIntervalRef.current = window.setInterval(() => {
                 console.log("♻️ Auto-refreshing session to prevent timeout (270s)...");
+                isReconnectRef.current = true;
                 disconnect();
                 // Trigger a reconnect after a short buffer
                 setTimeout(() => {
