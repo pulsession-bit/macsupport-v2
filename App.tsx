@@ -286,6 +286,7 @@ const App: React.FC = () => {
         screenStreamRef.current = screenStream;
         if (videoRef.current) {
           videoRef.current.srcObject = screenStream;
+          videoRef.current.play().catch(() => {});
         }
         screenStream.getVideoTracks()[0].onended = () => {
           screenStreamRef.current = null;
@@ -469,15 +470,15 @@ const App: React.FC = () => {
             if ((videoTrack || screenStreamRef.current) && ctx && videoRef.current) {
               frameIntervalRef.current = window.setInterval(() => {
                 if (!sessionPromiseRef.current) return;
-                if (videoRef.current && canvasRef.current && videoRef.current.readyState === 4) {
-                  canvasRef.current.width = videoRef.current.videoWidth / 4;
-                  canvasRef.current.height = videoRef.current.videoHeight / 4;
+                if (videoRef.current && canvasRef.current && videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
+                  canvasRef.current.width = screenStreamRef.current ? videoRef.current.videoWidth / 2 : videoRef.current.videoWidth / 4;
+                  canvasRef.current.height = screenStreamRef.current ? videoRef.current.videoHeight / 2 : videoRef.current.videoHeight / 4;
                   ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
                   canvasRef.current.toBlob(async (blob) => {
                     if (!sessionPromiseRef.current || !blob) return;
                     const base64Data = await blobToBase64(blob);
                     sessionPromise.then(s => s.sendRealtimeInput({ media: { data: base64Data, mimeType: 'image/jpeg' } }));
-                  }, 'image/jpeg', 0.5);
+                  }, 'image/jpeg', screenStreamRef.current ? 0.8 : 0.5);
                 }
               }, 1000);
             }
