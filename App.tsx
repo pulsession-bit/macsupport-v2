@@ -296,6 +296,11 @@ const App: React.FC = () => {
           setIsScreenSharing(false);
         };
         setIsScreenSharing(true);
+        // Notifier Gemini qu'il reçoit maintenant des frames d'écran
+        sessionPromiseRef.current?.then(s => s.sendClientContent({
+          turns: [{ role: 'user', parts: [{ text: "[SCREEN_SHARE_START] L'utilisateur partage maintenant son écran. Tu reçois des captures d'écran en temps réel (1 image/seconde). Regarde attentivement les images pour analyser ce que l'utilisateur voit." }] }],
+          turnComplete: false
+        }));
       } catch (e) {
         console.warn("Partage d'écran annulé ou refusé", e);
       }
