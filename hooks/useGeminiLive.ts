@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { GoogleGenAI, LiveServerMessage, Modality, Type } from '@google/genai';
 import { createBlob, decode, decodeAudioData, blobToBase64 } from '../utils/audio';
 import { MODEL_NAME, SYSTEM_INSTRUCTIONS } from '../constants';
 import { Language, TechnicalContext, ConnectionStatus } from '../types';
@@ -47,6 +47,7 @@ export function useGeminiLive({
   const currentInputTranscription = useRef<string>('');
   const currentOutputTranscription = useRef<string>('');
   const animatingRef = useRef<boolean>(false);
+  const lastSentContextRef = useRef<string>('');
 
   const disconnect = useCallback(() => {
     if (reconnectIntervalRef.current) {
@@ -185,11 +186,31 @@ export function useGeminiLive({
           systemInstruction: SYSTEM_INSTRUCTIONS[language] + contextPrompt + reconnectPrompt,
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
           inputAudioTranscription: {},
-          outputAudioTranscription: {}
+          outputAudioTranscription: {},
+          tools: [{
+            functionDeclarations: [
+              {
+                name: "search_vestee_repair_manuals",
+                description: "Recherche un manuel de réparation privé dans la base de données Vestee. Appeler cette fonction pour chercher des instructions de réparation sur des problèmes techniques complexes ou des modèles récents (M3, M4, 2024, etc).",
+                parameters: {
+                  type: Type.OBJECT,
+                  properties: {
+                    query: {
+                      type: Type.STRING,
+                      description: "La requête de recherche détaillée, ex: 'procédure écran noir macbook pro M4'"
+                    }
+                  },
+                  required: ["query"]
+                }
+              }
+            ]
+          }]
         },
         callbacks: {
           onopen: () => {
             setStatus('connected');
+            // Snapshot the context already injected in system prompt — don't resend it
+            lastSentContextRef.current = JSON.stringify(techContext);
 
             if (pendingScreenStreamRef.current?.active) {
               screenStreamRef.current = pendingScreenStreamRef.current;
@@ -252,6 +273,32 @@ export function useGeminiLive({
             }
           },
           onmessage: async (msg: LiveServerMessage) => {
+            // --- RAG FUNCTION CALL HANDLING ---
+            const toolCall = (msg as any).toolCall;
+            const functionCalls = toolCall?.functionCalls || (msg.serverContent?.modelTurn?.parts?.filter((p: any) => p.functionCall)?.map((p: any) => p.functionCall)) || [];
+            
+            if (functionCalls.length > 0) {
+               const call = functionCalls[0];
+               if (call.name === "search_vestee_repair_manuals") {
+                  const args = call.args as any;
+                  console.log("🔍 RAG Triggered! L'IA cherche dans la base de données :", args.query);
+                  
+                  // Fausse Base de données Vestee (Simulation RAG)
+                  setTimeout(() => {
+                     sessionPromiseRef.current?.then(s => s.sendToolResponse({
+                       functionResponses: [{
+                         id: call.id,
+                         name: call.name,
+                         response: {
+                           result: `[BASE PRIVÉE VESTEE] Résultat pour "${args.query}": Les Mac M3 et M4 (2024+) gèrent la NVRAM et SMC automatiquement. Pour redémarrer, maintenez Touch ID 10 secondes. Si un Mac M4 (2025) a un bug Thunderbolt, macOS Sequoia 15.1 le corrige. Guidez l'utilisateur en tant qu'expert Vestee N2 avec ces informations factuelles.`
+                         }
+                       }]
+                     }));
+                  }, 1200); // Latence d'une recherche en DB
+               }
+            }
+            // ----------------------------------
+
             if (msg.serverContent?.outputTranscription) {
               const text = msg.serverContent.outputTranscription.text;
               currentOutputTranscription.current += text;
@@ -348,11 +395,26 @@ export function useGeminiLive({
     if (activeTab !== 'live' && status === 'connected') disconnect();
   }, [activeTab, status, connect, disconnect, reconnectTrigger]);
 
+  // Push techContext updates to Gemini in real-time during active session
+  useEffect(() => {
+    if (status !== 'connected' || !sessionPromiseRef.current) return;
+    const serialized = JSON.stringify(techContext);
+    if (serialized === lastSentContextRef.current || serialized === '{}') return;
+    lastSentContextRef.current = serialized;
+    sessionPromiseRef.current.then(s => s.sendClientContent({
+      turns: [{ role: 'user', parts: [{ text: `[LIVE_CONTEXT_UPDATE] Nouvelles informations sur l'appareil de l'utilisateur (mettre à jour ta compréhension silencieusement, ne pas lire ces données à haute voix) : ${serialized}` }] }],
+      turnComplete: false
+    }));
+  }, [techContext, status]);
+
   // Trigger reconnect from error state (used by UI retry button)
   const reconnect = useCallback(() => setStatus('disconnected'), []);
 
   const sendText = useCallback((text: string) => {
     if (!sessionPromiseRef.current || status !== 'connected') return;
+    // Inject into transcription refs so turnComplete picks it up and displays it
+    currentInputTranscription.current = text;
+    setRealtimeInput(text);
     sessionPromiseRef.current.then(s => s.sendClientContent({
       turns: [{ role: 'user', parts: [{ text }] }],
       turnComplete: true
