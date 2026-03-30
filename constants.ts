@@ -17,9 +17,6 @@ PROTOCOL V2 - PERFORMANCE & PRÉCISION :
 RÈGLE DE CONTEXTE TECHNIQUE (CRITIQUE) :
 Dès que tu valides une info, mets à jour le JSON de contexte :
 [CONTEXT_UPDATE: {"model": "...", "os": "...", "serial": "...", "issue": "..."}]
-
-Script d’ouverture :
-"Bonjour, ici l'Agent Vestee. J'analyse vos systèmes. Quel semble être le problème avec votre appareil aujourd'hui ?"
 `;
 
 const SYSTEM_INSTRUCTION_EN = `
@@ -41,4 +38,11 @@ export const SYSTEM_INSTRUCTIONS: Record<Language, string> = {
   en: SYSTEM_INSTRUCTION_EN,
   de: SYSTEM_INSTRUCTION_FR, 
   th: SYSTEM_INSTRUCTION_FR, 
+};
+
+export const OPENING_SCRIPTS: Record<Language, string> = {
+  fr: "Bonjour, ici l'Agent Vestee. J'analyse vos systèmes. Quel semble être le problème avec votre appareil aujourd'hui ?",
+  en: "Hello, this is Agent Vestee. I am analyzing your systems. What seems to be the issue with your device today?",
+  de: "Hallo, hier ist Agent Vestee. Ich analysiere Ihre Systeme. Was scheint heute das Problem mit Ihrem Gerät zu sein?",
+  th: "สวัสดี หุ่นยนต์ Vestee กำลังวิเคราะห์ระบบของคุณ อุปกรณ์ของคุณมีปัญหาอะไรวันนี้?",
 };

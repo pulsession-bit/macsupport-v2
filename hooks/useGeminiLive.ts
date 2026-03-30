@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Type } from '@google/genai';
 import { createBlob, decode, decodeAudioData, blobToBase64 } from '../utils/audio';
-import { MODEL_NAME, SYSTEM_INSTRUCTIONS } from '../constants';
+import { MODEL_NAME, SYSTEM_INSTRUCTIONS, OPENING_SCRIPTS } from '../constants';
 import { Language, TechnicalContext, ConnectionStatus } from '../types';
 
 interface UseGeminiLiveOptions {
@@ -175,8 +175,8 @@ export function useGeminiLive({
         ? `\n\n[SYSTEM_DATA_INJECTION]\nCONTEXTE TECHNIQUE PRÉ-ÉTABLI (Utiliser pour le diagnostic, ne pas lire le JSON à haute voix, confirmer simplement "Je vois le contexte" si pertinent):\n${JSON.stringify(techContext)}`
         : "";
       const reconnectPrompt = isReconnectRef.current
-        ? `\n\n[RECONNEXION SESSION] Tu reprends une session en cours. NE PAS répéter le message d'ouverture. Reste silencieux et attends la prochaine intervention de l'utilisateur.`
-        : "";
+        ? `\n\n[RECONNEXION SESSION] Tu reprends une session en cours à cause d'une coupure réseau. NE PAS répéter le message d'ouverture. NE PAS dire bonjour. Reste totalement silencieux et attends simplement la prochaine intervention de l'utilisateur ou continue ta réponse précédente.`
+        : `\n\nScript d’ouverture :\n"${OPENING_SCRIPTS[language] || OPENING_SCRIPTS['fr']}"`;
       isReconnectRef.current = false;
 
       const sessionPromise = sessionPromiseRef.current = ai.live.connect({
