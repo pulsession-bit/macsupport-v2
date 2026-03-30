@@ -1,0 +1,393 @@
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
+import { createBlob, decode, decodeAudioData, blobToBase64 } from '../utils/audio';
+import { MODEL_NAME, SYSTEM_INSTRUCTIONS } from '../constants';
+import { Language, TechnicalContext, ConnectionStatus } from '../types';
+
+interface UseGeminiLiveOptions {
+  language: Language;
+  techContext: TechnicalContext;
+  setTechContext: React.Dispatch<React.SetStateAction<TechnicalContext>>;
+  saveTurnToDb: (input: string, output: string) => Promise<void>;
+  activeTab: string;
+}
+
+export function useGeminiLive({
+  language,
+  techContext,
+  setTechContext,
+  saveTurnToDb,
+  activeTab,
+}: UseGeminiLiveOptions) {
+  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [sessionTime, setSessionTime] = useState(0);
+  const [userVolume, setUserVolume] = useState(0);
+  const [agentVolume, setAgentVolume] = useState(0);
+  const [realtimeInput, setRealtimeInput] = useState('');
+  const [realtimeOutput, setRealtimeOutput] = useState('');
+  const [reconnectTrigger, setReconnectTrigger] = useState(0);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const inputAudioContextRef = useRef<AudioContext | null>(null);
+  const sessionPromiseRef = useRef<Promise<any> | null>(null);
+  const nextStartTimeRef = useRef<number>(0);
+  const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+  const agentAnalyserRef = useRef<AnalyserNode | null>(null);
+  const userAnalyserRef = useRef<AnalyserNode | null>(null);
+  const frameIntervalRef = useRef<number | null>(null);
+  const timeIntervalRef = useRef<number | null>(null);
+  const reconnectIntervalRef = useRef<number | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const isReconnectRef = useRef<boolean>(false);
+  const pendingScreenStreamRef = useRef<MediaStream | null>(null);
+  const currentInputTranscription = useRef<string>('');
+  const currentOutputTranscription = useRef<string>('');
+  const animatingRef = useRef<boolean>(false);
+
+  const disconnect = useCallback(() => {
+    if (reconnectIntervalRef.current) {
+      clearInterval(reconnectIntervalRef.current);
+      reconnectIntervalRef.current = null;
+    }
+    if (timeIntervalRef.current) {
+      clearInterval(timeIntervalRef.current);
+      timeIntervalRef.current = null;
+    }
+    setSessionTime(0);
+
+    animatingRef.current = false;
+
+    if (frameIntervalRef.current) clearInterval(frameIntervalRef.current);
+    screenStreamRef.current?.getTracks().forEach(t => t.stop());
+    screenStreamRef.current = null;
+    setIsScreenSharing(false);
+    mediaStreamRef.current = null;
+    sessionPromiseRef.current?.then(s => s.close());
+    sessionPromiseRef.current = null;
+
+    setStatus('disconnected');
+    setRealtimeInput('');
+    setRealtimeOutput('');
+
+    sourcesRef.current.forEach(s => s.stop());
+    sourcesRef.current.clear();
+
+    if (videoRef.current?.srcObject) {
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
+      inputAudioContextRef.current.close();
+      inputAudioContextRef.current = null;
+    }
+  }, []);
+
+  const toggleScreenShare = useCallback(async () => {
+    if (isScreenSharing) {
+      screenStreamRef.current?.getTracks().forEach(t => t.stop());
+      screenStreamRef.current = null;
+      if (videoRef.current && mediaStreamRef.current) {
+        videoRef.current.srcObject = mediaStreamRef.current;
+      }
+      setIsScreenSharing(false);
+    } else {
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        screenStream.getAudioTracks().forEach(t => t.stop());
+        screenStreamRef.current = screenStream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = screenStream;
+          videoRef.current.play().catch(() => {});
+        }
+        screenStream.getVideoTracks()[0].onended = () => {
+          screenStreamRef.current = null;
+          if (videoRef.current && mediaStreamRef.current) {
+            videoRef.current.srcObject = mediaStreamRef.current;
+          }
+          setIsScreenSharing(false);
+        };
+        setIsScreenSharing(true);
+        sessionPromiseRef.current?.then(s => s.sendClientContent({
+          turns: [{ role: 'user', parts: [{ text: "[SCREEN_SHARE_START] L'utilisateur vient d'activer le partage d'écran ! Prends la parole IMMÉDIATEMENT pour le dire (ex: 'C'est parfait, je vois votre écran maintenant') et commence à le guider activement pour la réparation grâce à ce que tu vois." }] }],
+          turnComplete: false
+        }));
+      } catch (e) {
+        console.warn("Partage d'écran annulé ou refusé", e);
+      }
+    }
+  }, [isScreenSharing]);
+
+  // Expose to allow pre-init within a user gesture (autoplay policy)
+  const preInitAudio = useCallback(() => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!audioContextRef.current) audioContextRef.current = new AudioContextClass({ sampleRate: 24000 });
+      if (!inputAudioContextRef.current) inputAudioContextRef.current = new AudioContextClass({ sampleRate: 16000 });
+      audioContextRef.current.resume();
+      inputAudioContextRef.current.resume();
+    } catch (e) {
+      console.warn("Audio Context Init Failed:", e);
+    }
+  }, []);
+
+  const connect = useCallback(async () => {
+    if (status !== 'disconnected') return;
+    setStatus('connecting');
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: { facingMode: "environment" }
+        });
+      } catch (e) {
+        console.warn("Preferred camera access denied, falling back to default.", e);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        } catch (e2) {
+          console.warn("Video access denied completely, falling back to audio only.", e2);
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          } catch (e3) {
+            console.error("Audio access denied", e3);
+            setStatus('error');
+            return;
+          }
+        }
+      }
+
+      if (videoRef.current) videoRef.current.srcObject = stream;
+      mediaStreamRef.current = stream;
+
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!audioContextRef.current) audioContextRef.current = new AudioContextClass({ sampleRate: 24000 });
+      if (!inputAudioContextRef.current) inputAudioContextRef.current = new AudioContextClass({ sampleRate: 16000 });
+
+      try {
+        if (audioContextRef.current.state === 'suspended') await audioContextRef.current.resume();
+        if (inputAudioContextRef.current.state === 'suspended') await inputAudioContextRef.current.resume();
+      } catch (e) {
+        console.warn("Audio resume blocked (should be handled by pre-init).");
+      }
+
+      agentAnalyserRef.current = audioContextRef.current.createAnalyser();
+      userAnalyserRef.current = inputAudioContextRef.current.createAnalyser();
+      agentAnalyserRef.current.fftSize = 256;
+      userAnalyserRef.current.fftSize = 256;
+
+      const contextPrompt = Object.keys(techContext).length > 0
+        ? `\n\n[SYSTEM_DATA_INJECTION]\nCONTEXTE TECHNIQUE PRÉ-ÉTABLI (Utiliser pour le diagnostic, ne pas lire le JSON à haute voix, confirmer simplement "Je vois le contexte" si pertinent):\n${JSON.stringify(techContext)}`
+        : "";
+      const reconnectPrompt = isReconnectRef.current
+        ? `\n\n[RECONNEXION SESSION] Tu reprends une session en cours. NE PAS répéter le message d'ouverture. Reste silencieux et attends la prochaine intervention de l'utilisateur.`
+        : "";
+      isReconnectRef.current = false;
+
+      const sessionPromise = sessionPromiseRef.current = ai.live.connect({
+        model: MODEL_NAME,
+        config: {
+          responseModalities: [Modality.AUDIO],
+          systemInstruction: SYSTEM_INSTRUCTIONS[language] + contextPrompt + reconnectPrompt,
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
+          inputAudioTranscription: {},
+          outputAudioTranscription: {}
+        },
+        callbacks: {
+          onopen: () => {
+            setStatus('connected');
+
+            if (pendingScreenStreamRef.current?.active) {
+              screenStreamRef.current = pendingScreenStreamRef.current;
+              if (videoRef.current) videoRef.current.srcObject = pendingScreenStreamRef.current;
+              setIsScreenSharing(true);
+              pendingScreenStreamRef.current = null;
+            }
+
+            // Auto-refresh every 270s to prevent Gemini Live timeout
+            if (reconnectIntervalRef.current) clearInterval(reconnectIntervalRef.current);
+            reconnectIntervalRef.current = window.setInterval(() => {
+              isReconnectRef.current = true;
+              if (screenStreamRef.current?.active) {
+                pendingScreenStreamRef.current = screenStreamRef.current;
+                screenStreamRef.current = null;
+                if (videoRef.current) videoRef.current.srcObject = null;
+              }
+              disconnect();
+              setTimeout(() => setReconnectTrigger(prev => prev + 1), 500);
+            }, 270000);
+
+            if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
+            if (!isReconnectRef.current) setSessionTime(0);
+            timeIntervalRef.current = window.setInterval(() => setSessionTime(prev => prev + 1), 1000);
+
+            const source = inputAudioContextRef.current!.createMediaStreamSource(stream);
+            const scriptProcessor = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
+
+            source.connect(userAnalyserRef.current!);
+            scriptProcessor.onaudioprocess = (e) => {
+              if (!sessionPromiseRef.current) return;
+              const inputData = e.inputBuffer.getChannelData(0);
+              const pcmBlob = createBlob(inputData);
+              sessionPromise.then(s => s.sendRealtimeInput({ media: pcmBlob }));
+            };
+
+            source.connect(scriptProcessor);
+            const muteNode = inputAudioContextRef.current!.createGain();
+            muteNode.gain.value = 0;
+            scriptProcessor.connect(muteNode);
+            muteNode.connect(inputAudioContextRef.current!.destination);
+
+            const ctx = canvasRef.current?.getContext('2d');
+            if (ctx && videoRef.current) {
+              frameIntervalRef.current = window.setInterval(() => {
+                if (!sessionPromiseRef.current) return;
+                if (!(mediaStreamRef.current?.getVideoTracks().length || screenStreamRef.current?.getVideoTracks().length)) return;
+                if (videoRef.current && canvasRef.current && videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
+                  canvasRef.current.width = screenStreamRef.current ? videoRef.current.videoWidth / 3 : videoRef.current.videoWidth / 4;
+                  canvasRef.current.height = screenStreamRef.current ? videoRef.current.videoHeight / 3 : videoRef.current.videoHeight / 4;
+                  ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+                  canvasRef.current.toBlob(async (blob) => {
+                    if (!sessionPromiseRef.current || !blob) return;
+                    const base64Data = await blobToBase64(blob);
+                    sessionPromise.then(s => s.sendRealtimeInput({ media: { data: base64Data, mimeType: 'image/jpeg' } }));
+                  }, 'image/jpeg', screenStreamRef.current ? 0.8 : 0.5);
+                }
+              }, 1000);
+            }
+          },
+          onmessage: async (msg: LiveServerMessage) => {
+            if (msg.serverContent?.outputTranscription) {
+              const text = msg.serverContent.outputTranscription.text;
+              currentOutputTranscription.current += text;
+              setRealtimeOutput(prev => prev + text);
+            } else if (msg.serverContent?.inputTranscription) {
+              const text = msg.serverContent.inputTranscription.text;
+              currentInputTranscription.current += text;
+              setRealtimeInput(prev => prev + text);
+            }
+
+            if (msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data) {
+              const audioBuffer = await decodeAudioData(
+                decode(msg.serverContent.modelTurn.parts[0].inlineData.data),
+                audioContextRef.current!,
+                24000, 1
+              );
+              const source = audioContextRef.current!.createBufferSource();
+              source.buffer = audioBuffer;
+              source.connect(agentAnalyserRef.current!);
+              agentAnalyserRef.current!.connect(audioContextRef.current!.destination);
+
+              const currentTime = audioContextRef.current!.currentTime;
+              if (nextStartTimeRef.current < currentTime) nextStartTimeRef.current = currentTime;
+
+              source.start(nextStartTimeRef.current);
+              nextStartTimeRef.current += audioBuffer.duration;
+              sourcesRef.current.add(source);
+              source.onended = () => sourcesRef.current.delete(source);
+            }
+
+            if (msg.serverContent?.interrupted) {
+              sourcesRef.current.forEach(s => s.stop());
+              sourcesRef.current.clear();
+              nextStartTimeRef.current = 0;
+            }
+
+            if (msg.serverContent?.turnComplete) {
+              const input = currentInputTranscription.current;
+              const output = currentOutputTranscription.current;
+
+              if (input || output) saveTurnToDb(input, output);
+
+              currentInputTranscription.current = '';
+              currentOutputTranscription.current = '';
+              setRealtimeInput('');
+              setRealtimeOutput('');
+
+              const contextMatch = output.match(/\[CONTEXT_UPDATE: (\{.*?\})\]/);
+              if (contextMatch) {
+                try { setTechContext(prev => ({ ...prev, ...JSON.parse(contextMatch[1]) })); } catch (e) { /* ignore */ }
+              }
+            }
+          },
+          onclose: () => setStatus('error'),
+          onerror: (e: unknown) => {
+            console.error("Session Error", e);
+            setStatus('error');
+          }
+        }
+      });
+      sessionPromiseRef.current = sessionPromise;
+
+      animatingRef.current = true;
+      const animate = () => {
+        if (!animatingRef.current) return;
+        if (userAnalyserRef.current) {
+          const data = new Uint8Array(userAnalyserRef.current.frequencyBinCount);
+          userAnalyserRef.current.getByteFrequencyData(data);
+          setUserVolume(data.reduce((a, b) => a + b, 0) / data.length / 255);
+        }
+        if (agentAnalyserRef.current) {
+          const data = new Uint8Array(agentAnalyserRef.current.frequencyBinCount);
+          agentAnalyserRef.current.getByteFrequencyData(data);
+          setAgentVolume(data.reduce((a, b) => a + b, 0) / data.length / 255);
+        }
+        requestAnimationFrame(animate);
+      };
+      animate();
+
+    } catch (e) {
+      console.error("Connection Failed:", e);
+      setStatus('error');
+    }
+  }, [status, language, saveTurnToDb, techContext, setTechContext, disconnect]);
+
+  // Trigger reconnect after auto-refresh disconnect
+  useEffect(() => {
+    if (reconnectTrigger > 0) connect();
+  }, [reconnectTrigger, connect]);
+
+  // Connect/disconnect on tab change
+  useEffect(() => {
+    if (activeTab === 'live' && status === 'disconnected' && reconnectTrigger === 0) connect();
+    if (activeTab !== 'live' && status === 'connected') disconnect();
+  }, [activeTab, status, connect, disconnect, reconnectTrigger]);
+
+  // Trigger reconnect from error state (used by UI retry button)
+  const reconnect = useCallback(() => setStatus('disconnected'), []);
+
+  const sendText = useCallback((text: string) => {
+    if (!sessionPromiseRef.current || status !== 'connected') return;
+    sessionPromiseRef.current.then(s => s.sendClientContent({
+      turns: [{ role: 'user', parts: [{ text }] }],
+      turnComplete: true
+    }));
+  }, [status]);
+
+  return {
+    status,
+    isScreenSharing,
+    sessionTime,
+    userVolume,
+    agentVolume,
+    realtimeInput,
+    realtimeOutput,
+    videoRef,
+    canvasRef,
+    connect,
+    disconnect,
+    reconnect,
+    toggleScreenShare,
+    preInitAudio,
+    sendText,
+  };
+}
