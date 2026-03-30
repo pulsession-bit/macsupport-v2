@@ -76,9 +76,7 @@ export function useGeminiLive({
     sourcesRef.current.forEach(s => s.stop());
     sourcesRef.current.clear();
 
-    if (videoRef.current?.srcObject) {
-      (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
-    }
+    if (videoRef.current) videoRef.current.srcObject = null;
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       audioContextRef.current.close();
       audioContextRef.current = null;
@@ -144,29 +142,16 @@ export function useGeminiLive({
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+      // Audio only — frames are sent only during active screen share
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: { facingMode: "environment" }
-        });
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (e) {
-        console.warn("Preferred camera access denied, falling back to default.", e);
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        } catch (e2) {
-          console.warn("Video access denied completely, falling back to audio only.", e2);
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          } catch (e3) {
-            console.error("Audio access denied", e3);
-            setStatus('error');
-            return;
-          }
-        }
+        console.error("Audio access denied", e);
+        setStatus('error');
+        return;
       }
 
-      if (videoRef.current) videoRef.current.srcObject = stream;
       mediaStreamRef.current = stream;
 
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -247,22 +232,23 @@ export function useGeminiLive({
             scriptProcessor.connect(muteNode);
             muteNode.connect(inputAudioContextRef.current!.destination);
 
+            // Screen share frames only: 1 frame/5s, resolution ÷5, quality 0.6
             const ctx = canvasRef.current?.getContext('2d');
             if (ctx && videoRef.current) {
               frameIntervalRef.current = window.setInterval(() => {
                 if (!sessionPromiseRef.current) return;
-                if (!(mediaStreamRef.current?.getVideoTracks().length || screenStreamRef.current?.getVideoTracks().length)) return;
+                if (!screenStreamRef.current?.getVideoTracks().length) return;
                 if (videoRef.current && canvasRef.current && videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
-                  canvasRef.current.width = screenStreamRef.current ? videoRef.current.videoWidth / 3 : videoRef.current.videoWidth / 4;
-                  canvasRef.current.height = screenStreamRef.current ? videoRef.current.videoHeight / 3 : videoRef.current.videoHeight / 4;
+                  canvasRef.current.width = Math.round(videoRef.current.videoWidth / 5);
+                  canvasRef.current.height = Math.round(videoRef.current.videoHeight / 5);
                   ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
                   canvasRef.current.toBlob(async (blob) => {
                     if (!sessionPromiseRef.current || !blob) return;
                     const base64Data = await blobToBase64(blob);
                     sessionPromise.then(s => s.sendRealtimeInput({ media: { data: base64Data, mimeType: 'image/jpeg' } }));
-                  }, 'image/jpeg', screenStreamRef.current ? 0.8 : 0.5);
+                  }, 'image/jpeg', 0.6);
                 }
-              }, 1000);
+              }, 5000);
             }
           },
           onmessage: async (msg: LiveServerMessage) => {
