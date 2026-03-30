@@ -4,6 +4,8 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/fi
 import {
   doc,
   setDoc,
+  updateDoc,
+  writeBatch,
   onSnapshot,
   collection,
   query,
@@ -11,11 +13,14 @@ import {
   limit,
   where,
   getDocs,
-  serverTimestamp
+  serverTimestamp,
+  Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { TechnicalContext, Turn } from '../types';
 
 const FS_ROOT = "macAssist/v1";
+const SESSION_TTL_DAYS = 1; // Sessions older than this are considered stale
+const HEARTBEAT_INTERVAL_MS = 60_000; // Update lastUpdated every 60s
 
 export function useSession() {
   const [user, setUser] = useState<any>(null);
@@ -41,18 +46,47 @@ export function useSession() {
 
     const initSession = async () => {
       try {
+        const staleThreshold = new Date();
+        staleThreshold.setDate(staleThreshold.getDate() - SESSION_TTL_DAYS);
+
+        // Fetch all active sessions for this user
         const q = query(
           collection(db, `${FS_ROOT}/sessions`),
           where('userId', '==', user.uid),
           where('status', '==', 'active'),
-          orderBy('lastUpdated', 'desc'),
-          limit(1)
+          orderBy('lastUpdated', 'desc')
         );
         const snap = await getDocs(q);
-        if (!snap.empty) {
-          setSessionId(snap.docs[0].id);
+
+        let resumeId: string | null = null;
+        const batch = writeBatch(db);
+
+        snap.forEach((d: any) => {
+          const data = d.data();
+          const lastUpdated: Date = data.lastUpdated?.toDate ? data.lastUpdated.toDate() : new Date(0);
+          if (!resumeId && lastUpdated > staleThreshold) {
+            // Keep most recent fresh session
+            resumeId = d.id;
+          } else {
+            // Expire stale / extra sessions
+            batch.update(doc(db, `${FS_ROOT}/sessions`, d.id), { status: 'expired', closedAt: serverTimestamp() });
+            console.log(`🗑️ Expired stale session: ${d.id}`);
+          }
+        });
+
+        await batch.commit();
+
+        if (resumeId) {
+          setSessionId(resumeId);
         } else {
-          setSessionId('sess_' + crypto.randomUUID());
+          const newId = 'sess_' + crypto.randomUUID();
+          await setDoc(doc(db, `${FS_ROOT}/sessions`, newId), {
+            userId: user.uid,
+            status: 'active',
+            createdAt: serverTimestamp(),
+            lastUpdated: serverTimestamp(),
+          });
+          setSessionId(newId);
         }
       } catch (e) {
         console.warn("Firestore access failed (likely Mock User), falling back to local session.", e);
@@ -97,6 +131,28 @@ export function useSession() {
     return () => { unsub(); unsubTranscript(); };
   }, [sessionId]);
 
+  // Heartbeat: keep lastUpdated fresh so session is not expired by next user
+  useEffect(() => {
+    if (!sessionId || sessionId.startsWith('sess_local_')) return;
+    const interval = setInterval(() => {
+      updateDoc(doc(db, `${FS_ROOT}/sessions`, sessionId), { lastUpdated: serverTimestamp() })
+        .catch((e: any) => console.warn('Heartbeat failed', e));
+    }, HEARTBEAT_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [sessionId]);
+
+  // Close session when user navigates away / tab closes
+  const closeSession = useCallback(() => {
+    if (!sessionId || sessionId.startsWith('sess_local_')) return;
+    updateDoc(doc(db, `${FS_ROOT}/sessions`, sessionId), { status: 'completed', closedAt: serverTimestamp() })
+      .catch((e: any) => console.warn('Failed to close session', e));
+  }, [sessionId]);
+
+  useEffect(() => {
+    window.addEventListener('beforeunload', closeSession);
+    return () => window.removeEventListener('beforeunload', closeSession);
+  }, [closeSession]);
+
   const saveTurnToDb = useCallback(async (input: string, output: string) => {
     if (!sessionId) return;
 
@@ -126,5 +182,6 @@ export function useSession() {
     setTechContext,
     transcriptionHistory,
     saveTurnToDb,
+    closeSession,
   };
 }

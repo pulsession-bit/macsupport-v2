@@ -89,7 +89,7 @@ const App: React.FC = () => {
   const {
     user, setUser, loading,
     techContext, setTechContext,
-    transcriptionHistory, saveTurnToDb,
+    transcriptionHistory, saveTurnToDb, closeSession,
   } = useSession();
 
   const {
@@ -149,6 +149,7 @@ const App: React.FC = () => {
             {user ? (
               <button
                 onClick={() => {
+                  closeSession();
                   signOut(auth).catch(() => {});
                   setUser(null);
                   setShowStartupHome(true);
