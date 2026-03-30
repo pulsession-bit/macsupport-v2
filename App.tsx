@@ -550,9 +550,9 @@ const App: React.FC = () => {
             }
           },
           onclose: () => {
-              // Only set disconnected if we aren't in the middle of a purposeful reconnect
-              // But since our reconnect logic calls disconnect() first, this is fine.
-              setStatus('disconnected');
+              // Set to error instead of disconnected to avoid an infinite auto-reconnect loop
+              // if the server refuses the connection or drops it immediately.
+              setStatus('error');
           },
           onerror: (e) => {
             console.error("Session Error", e);
