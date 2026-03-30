@@ -470,11 +470,14 @@ const App: React.FC = () => {
             muteNode.connect(inputAudioContextRef.current!.destination);
 
             // Video frames
-            const videoTrack = stream.getVideoTracks()[0];
             const ctx = canvasRef.current?.getContext('2d');
-            if ((videoTrack || screenStreamRef.current) && ctx && videoRef.current) {
+            if (ctx && videoRef.current) {
               frameIntervalRef.current = window.setInterval(() => {
                 if (!sessionPromiseRef.current) return;
+                
+                // Only send frames if a camera or screen stream is active
+                if (!(mediaStreamRef.current?.getVideoTracks().length || screenStreamRef.current?.getVideoTracks().length)) return;
+
                 if (videoRef.current && canvasRef.current && videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
                   canvasRef.current.width = screenStreamRef.current ? videoRef.current.videoWidth / 2 : videoRef.current.videoWidth / 4;
                   canvasRef.current.height = screenStreamRef.current ? videoRef.current.videoHeight / 2 : videoRef.current.videoHeight / 4;
