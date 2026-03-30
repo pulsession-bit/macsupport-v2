@@ -3,7 +3,7 @@ import { Language } from './types';
 
 // Modèle Live requis pour la latence audio (Gemini 2.5 Native)
 // Note: Les tâches textuelles (résumés) utilisent Gemini 3 Flash dans App.tsx
-export const MODEL_NAME = 'gemini-3.1-flash-live-preview';
+export const MODEL_NAME = 'gemini-2.5-flash-native-audio-preview-09-2025';
 
 const SYSTEM_INSTRUCTION_FR = `
 Tu es AGENT VESTEE, l'intelligence artificielle d'élite pour le support technique.
