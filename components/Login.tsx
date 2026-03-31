@@ -1,11 +1,10 @@
 
 import React, { useState } from 'react';
 import { auth, googleProvider } from '../firebase';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signInWithPopup,
-  signInAnonymously
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 interface LoginProps {
@@ -61,18 +60,10 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onCancel, showCanc
     }
   };
 
-  const handleAnonymousAuth = async () => {
-    setIsLoading(true);
-    setError('');
-    try {
-      const result = await signInAnonymously(auth);
-      onLoginSuccess(result.user);
-    } catch (err: any) {
-      console.error(err);
-      setError("Erreur d'authentification anonyme");
-    } finally {
-      setIsLoading(false);
-    }
+  const handleAnonymousAuth = () => {
+    // Bypass Firebase — local mock user for dev/guest access
+    // useSession détecte uid 'local_*' et crée une session sess_local_ sans Firestore
+    onLoginSuccess({ uid: 'local_' + crypto.randomUUID(), isAnonymous: true, displayName: 'Invité' });
   };
 
   return (
