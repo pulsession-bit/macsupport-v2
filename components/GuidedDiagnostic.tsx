@@ -191,7 +191,7 @@ export const GuidedDiagnostic: React.FC<GuidedDiagnosticProps> = ({ techContext,
       <div className="flex-1 flex flex-col relative border-r border-white/5">
         
         {/* HEADER */}
-        <header className="flex-none h-24 px-10 flex items-center justify-between border-b border-white/5 bg-[#050505]">
+        <header className="flex-none h-20 sm:h-24 px-4 sm:px-10 flex items-center justify-between border-b border-white/5 bg-[#050505]">
           <div className="flex items-center gap-4">
             {/* Back Button */}
             {currentStep > 1 && (
@@ -210,7 +210,7 @@ export const GuidedDiagnostic: React.FC<GuidedDiagnosticProps> = ({ techContext,
               <h2 className="text-sm font-bold text-white">{auth.currentUser?.isAnonymous ? 'Mode Invité' : auth.currentUser?.displayName || 'Client'}</h2>
               <button 
                 onClick={onNavigateToBooking}
-                className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 hover:text-white transition-colors flex items-center gap-1"
+                className="text-xs font-bold uppercase tracking-[0.1em] sm:tracking-widest text-neutral-500 hover:text-white transition-colors flex items-center gap-1"
               >
                 <span className="w-1.5 h-0.5 bg-neutral-600"></span> Prendre Rendez-vous
               </button>
@@ -234,14 +234,14 @@ export const GuidedDiagnostic: React.FC<GuidedDiagnosticProps> = ({ techContext,
 
           <button 
             onClick={onRequestAccessPro}
-            className="px-6 py-3 bg-white text-black rounded-full text-[9px] font-black uppercase tracking-[0.2em] hover:scale-105 transition-transform"
+            className="min-h-[44px] px-5 py-3 bg-white text-black rounded-full text-xs font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] hover:scale-105 transition-transform"
           >
             Accès Pro
           </button>
         </header>
 
         {/* CONTENT AREA */}
-        <div className="flex-1 flex flex-col justify-center px-8 lg:px-24 xl:px-32 relative">
+        <div className="flex-1 flex flex-col justify-center px-4 sm:px-8 lg:px-24 xl:px-32 relative">
           
           {currentStep < 5 ? (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -280,13 +280,13 @@ export const GuidedDiagnostic: React.FC<GuidedDiagnosticProps> = ({ techContext,
                 <div className="flex flex-col gap-4 w-full max-w-xs">
                     <button 
                     onClick={handleFinish}
-                    className="w-full py-5 bg-white text-black rounded-full font-bold uppercase tracking-[0.3em] text-[10px] hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)]"
+                    className="w-full min-h-[44px] py-3 sm:py-5 bg-white text-black rounded-full font-bold uppercase tracking-[0.12em] sm:tracking-[0.3em] text-xs hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)]"
                     >
                     Lancer Session Live
                     </button>
                     <button 
                         onClick={() => setCurrentStep(1)}
-                        className="w-full py-4 bg-transparent border border-white/10 text-neutral-500 hover:text-white rounded-full font-bold uppercase tracking-[0.3em] text-[9px] transition-all"
+                        className="w-full min-h-[44px] py-3 sm:py-4 bg-transparent border border-white/10 text-neutral-500 hover:text-white rounded-full font-bold uppercase tracking-[0.12em] sm:tracking-[0.3em] text-xs transition-all"
                     >
                         Recommencer
                     </button>
@@ -296,7 +296,7 @@ export const GuidedDiagnostic: React.FC<GuidedDiagnosticProps> = ({ techContext,
 
           {/* PROGRESS FOOTER (Inside Left Pane) */}
           <div className="absolute bottom-12 left-8 right-8 lg:left-24 lg:right-24">
-             <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-[0.2em] text-neutral-600 mb-3">
+             <div className="flex justify-between items-center text-xs font-black uppercase tracking-[0.08em] sm:tracking-[0.2em] text-neutral-600 mb-3">
                 <span>Séquence {currentStep} / 5</span>
                 <span>{Math.min(100, Math.round((currentStep / 5) * 100))}%</span>
              </div>

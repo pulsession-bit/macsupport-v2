@@ -61,7 +61,7 @@ export const LiveTab: React.FC<LiveTabProps> = ({
   const TextInput = (
     <form
       onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-      className="flex items-center gap-2 p-3 bg-white/5 border border-white/10 rounded-2xl"
+      className="flex items-center gap-2 p-2.5 sm:p-3 bg-white/5 border border-white/10 rounded-2xl"
     >
       <input
         type="text"
@@ -74,9 +74,9 @@ export const LiveTab: React.FC<LiveTabProps> = ({
       <button
         type="submit"
         disabled={status !== 'connected' || !textInput.trim()}
-        className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+        className="w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0"
       >
-        <svg className="w-3 h-3 text-white rotate-90" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-white rotate-90" fill="currentColor" viewBox="0 0 24 24">
           <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
         </svg>
       </button>
@@ -118,7 +118,7 @@ export const LiveTab: React.FC<LiveTabProps> = ({
                 : 'bg-yellow-500'
               }`} />
               <div className="flex flex-col">
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white">
+                <span className="text-xs sm:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.3em] text-white">
                   {status === 'connected' ? 'Live Session' : status === 'error' ? 'Erreur Connexion' : 'Connexion...'}
                 </span>
                 {status === 'connected' && (
@@ -128,7 +128,7 @@ export const LiveTab: React.FC<LiveTabProps> = ({
                 )}
               </div>
             </div>
-            <p className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">Agent Vestee - Expert N2</p>
+            <p className="text-[11px] sm:text-xs font-bold text-neutral-500 uppercase tracking-[0.1em] sm:tracking-widest">Agent Vestee - Expert N2</p>
           </div>
           <div className="flex gap-4">
             <Visualizer level={userVolume} color="#3b82f6" label="Input" />
@@ -170,7 +170,7 @@ export const LiveTab: React.FC<LiveTabProps> = ({
         </div>
 
         {/* Controls */}
-        <div className="relative z-10 p-8 flex justify-center gap-4">
+        <div className="relative z-10 p-4 sm:p-8 flex justify-center gap-3 sm:gap-4">
           {status === 'connected' && (
             <>
               {/* Screen Share - Only on Desktop (lg) */}
@@ -188,7 +188,7 @@ export const LiveTab: React.FC<LiveTabProps> = ({
               {/* Camera - Only on Mobile (< lg) */}
               <button
                 onClick={onToggleCamera}
-                className={`lg:hidden px-6 py-5 border rounded-full text-[9px] font-black uppercase tracking-[0.4em] transition-all shadow-lg backdrop-blur-sm ${
+                className={`lg:hidden min-h-[44px] px-5 py-3 border rounded-full text-xs font-black uppercase tracking-[0.14em] transition-all shadow-lg backdrop-blur-sm ${
                   isCameraActive
                     ? 'bg-emerald-600/20 border-emerald-600/40 text-emerald-400 hover:bg-emerald-600 hover:text-white'
                     : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
@@ -200,7 +200,7 @@ export const LiveTab: React.FC<LiveTabProps> = ({
           )}
           <button
             onClick={() => { onDisconnect(); onNavigateToGuided(); }}
-            className="px-10 py-5 bg-red-600/10 border border-red-600/20 text-red-500 rounded-full text-[9px] font-black uppercase tracking-[0.4em] hover:bg-red-600 hover:text-white transition-all shadow-lg backdrop-blur-sm"
+            className="min-h-[44px] px-6 sm:px-10 py-3 sm:py-5 bg-red-600/10 border border-red-600/20 text-red-500 rounded-full text-xs font-black uppercase tracking-[0.14em] sm:tracking-[0.4em] hover:bg-red-600 hover:text-white transition-all shadow-lg backdrop-blur-sm"
           >
             Terminer
           </button>

@@ -76,11 +76,11 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({ onCo
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto bg-black border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-1000">
+    <div className="w-full max-w-5xl mx-auto bg-black border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-1000">
       <div className="grid grid-cols-1 lg:grid-cols-12">
         
         {/* Colonne d'Information (Gauche) */}
-        <div className="lg:col-span-4 bg-white/[0.02] p-10 lg:p-14 border-b lg:border-b-0 lg:border-r border-white/5 space-y-10">
+        <div className="lg:col-span-4 bg-white/[0.02] p-6 sm:p-10 lg:p-14 border-b lg:border-b-0 lg:border-r border-white/5 space-y-8 sm:space-y-10">
           <div className="space-y-6">
             <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,11 +106,11 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({ onCo
         </div>
 
         {/* Colonne Formulaire (Droite) */}
-        <div className="lg:col-span-8 p-10 lg:p-14">
+        <div className="lg:col-span-8 p-6 sm:p-10 lg:p-14">
           <form onSubmit={handleSubmit} className="space-y-10">
             
             <div className="space-y-6">
-              <h3 className="text-[9px] font-black text-neutral-600 uppercase tracking-[0.4em]">Spécifications</h3>
+              <h3 className="text-xs font-black text-neutral-600 uppercase tracking-[0.12em] sm:tracking-[0.4em]">Spécifications</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input 
                   type="text" 
@@ -137,7 +137,7 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({ onCo
             </div>
 
             <div className="space-y-6 pt-6 border-t border-white/5">
-              <h3 className="text-[9px] font-black text-neutral-600 uppercase tracking-[0.4em]">Coordonnées</h3>
+              <h3 className="text-xs font-black text-neutral-600 uppercase tracking-[0.12em] sm:tracking-[0.4em]">Coordonnées</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input 
                   type="text" 
@@ -170,7 +170,7 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({ onCo
 
             <div className="pt-6">
               <div className="flex items-center gap-2 mb-6">
-                <p className="text-[9px] font-black text-neutral-600 uppercase tracking-[0.4em]">Niveau d'urgence :</p>
+                <p className="text-xs font-black text-neutral-600 uppercase tracking-[0.12em] sm:tracking-[0.4em]">Niveau d'urgence :</p>
                 <span className="text-[9px] font-bold text-white uppercase bg-blue-500/20 px-2 py-0.5 rounded tracking-widest">{formData.urgency}</span>
               </div>
               <div className="grid grid-cols-3 gap-3">
@@ -179,7 +179,7 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({ onCo
                     key={lvl}
                     type="button"
                     onClick={() => setFormData(f => ({ ...f, urgency: lvl }))}
-                    className={`py-3 rounded-xl border text-[9px] font-bold uppercase tracking-widest transition-all ${formData.urgency === lvl ? 'bg-white text-black border-white' : 'bg-transparent border-white/5 text-neutral-500 hover:border-white/10'}`}
+                    className={`min-h-[44px] py-3 rounded-xl border text-xs font-bold uppercase tracking-[0.1em] sm:tracking-widest transition-all ${formData.urgency === lvl ? 'bg-white text-black border-white' : 'bg-transparent border-white/5 text-neutral-500 hover:border-white/10'}`}
                   >
                     {lvl}
                   </button>
@@ -191,7 +191,7 @@ export const AppointmentScheduler: React.FC<AppointmentSchedulerProps> = ({ onCo
               <button 
                 type="submit" 
                 disabled={isSubmitting}
-                className="w-full py-6 bg-white text-black rounded-full font-black uppercase tracking-[0.4em] text-[10px] hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl disabled:opacity-50"
+                className="w-full min-h-[44px] py-4 sm:py-6 bg-white text-black rounded-full font-black uppercase tracking-[0.12em] sm:tracking-[0.4em] text-xs hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl disabled:opacity-50"
               >
                 {isSubmitting ? 'Envoi en cours...' : 'Soumettre la demande'}
               </button>

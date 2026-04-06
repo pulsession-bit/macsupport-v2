@@ -109,7 +109,7 @@ export const SmartBooking: React.FC<SmartBookingProps> = ({ onNavigateToDiagnost
       <div className="flex-1 flex flex-col relative border-r border-white/5">
         
         {/* HEADER */}
-        <header className="flex-none h-24 px-10 flex items-center justify-between border-b border-white/5 bg-[#050505]">
+        <header className="flex-none h-20 sm:h-24 px-4 sm:px-10 flex items-center justify-between border-b border-white/5 bg-[#050505]">
           <div className="flex items-center gap-4">
              {currentStep > 1 && !success && (
                 <button 
@@ -143,7 +143,7 @@ export const SmartBooking: React.FC<SmartBookingProps> = ({ onNavigateToDiagnost
         </header>
 
         {/* CONTENT AREA */}
-        <div className="flex-1 flex flex-col justify-center px-8 lg:px-24 xl:px-32 relative overflow-y-auto">
+        <div className="flex-1 flex flex-col justify-center px-4 sm:px-8 lg:px-24 xl:px-32 relative overflow-y-auto">
           
           {/* STEP 1: SYMPTOMS */}
           {currentStep === 1 && (
@@ -186,7 +186,7 @@ export const SmartBooking: React.FC<SmartBookingProps> = ({ onNavigateToDiagnost
                     className="w-full bg-[#111] border border-white/10 rounded-2xl px-8 py-6 text-xl text-white placeholder:text-neutral-600 focus:border-white/30 outline-none transition-all"
                     placeholder="Ex: MacBook Pro M1 2020"
                  />
-                 <button type="submit" className="w-full py-5 bg-white text-black rounded-full font-bold uppercase tracking-[0.3em] text-[10px] hover:scale-105 active:scale-95 transition-all">
+                 <button type="submit" className="w-full min-h-[44px] py-3 sm:py-5 bg-white text-black rounded-full font-bold uppercase tracking-[0.12em] sm:tracking-[0.3em] text-xs hover:scale-105 active:scale-95 transition-all">
                     Valider
                  </button>
               </form>
@@ -227,7 +227,7 @@ export const SmartBooking: React.FC<SmartBookingProps> = ({ onNavigateToDiagnost
                  <input name="email" required type="email" placeholder="Email" defaultValue={auth.currentUser?.email || ''} className="w-full bg-[#111] border border-white/10 rounded-xl px-6 py-4 text-white focus:border-white/30 outline-none" />
                  <input name="phone" required type="tel" placeholder="Téléphone" className="w-full bg-[#111] border border-white/10 rounded-xl px-6 py-4 text-white focus:border-white/30 outline-none" />
                  
-                 <button type="submit" disabled={isSubmitting} className="w-full mt-6 py-5 bg-blue-600 text-white rounded-full font-bold uppercase tracking-[0.3em] text-[10px] hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20">
+                 <button type="submit" disabled={isSubmitting} className="w-full mt-6 min-h-[44px] py-3 sm:py-5 bg-blue-600 text-white rounded-full font-bold uppercase tracking-[0.12em] sm:tracking-[0.3em] text-xs hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20">
                     {isSubmitting ? 'Validation...' : 'Confirmer le Rendez-vous'}
                  </button>
               </form>
@@ -248,7 +248,7 @@ export const SmartBooking: React.FC<SmartBookingProps> = ({ onNavigateToDiagnost
                 <div className="flex flex-col gap-4 w-full max-w-xs">
                     <button 
                         onClick={() => window.location.reload()}
-                        className="w-full py-4 bg-white text-black rounded-full font-bold uppercase tracking-[0.3em] text-[9px] transition-all hover:scale-105"
+                        className="w-full min-h-[44px] py-3 sm:py-4 bg-white text-black rounded-full font-bold uppercase tracking-[0.12em] sm:tracking-[0.3em] text-xs transition-all hover:scale-105"
                     >
                         Retour Accueil
                     </button>
@@ -258,7 +258,7 @@ export const SmartBooking: React.FC<SmartBookingProps> = ({ onNavigateToDiagnost
 
           {/* PROGRESS FOOTER */}
           <div className="absolute bottom-12 left-8 right-8 lg:left-24 lg:right-24">
-             <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-[0.2em] text-neutral-600 mb-3">
+             <div className="flex justify-between items-center text-xs font-black uppercase tracking-[0.08em] sm:tracking-[0.2em] text-neutral-600 mb-3">
                 <span>Progression</span>
                 <span>{Math.min(100, Math.round((currentStep / 5) * 100))}%</span>
              </div>

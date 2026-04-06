@@ -135,17 +135,17 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-white/20">
       <div className="h-[100dvh] w-full flex flex-col overflow-hidden">
-        <header className="flex-none p-6 border-b border-white/5 flex justify-between items-center py-6">
+        <header className="flex-none px-4 sm:px-6 border-b border-white/5 flex justify-between items-center py-4 sm:py-6">
           <div className="flex items-center gap-4">
             <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center border border-white/10">
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 0012 3a10.003 10.003 0 00-6.912 2.744L5.05 6.05M12 7V3m0 0a10 10 0 100 20 10 10 0 000-20z" />
               </svg>
             </div>
-            <h2 className="text-sm font-black uppercase tracking-[0.3em]">VESTEE ASSISTANCE PRO</h2>
+            <h2 className="text-xs sm:text-sm font-black uppercase tracking-[0.15em] sm:tracking-[0.3em]">VESTEE ASSISTANCE PRO</h2>
           </div>
-          <div className="flex items-center gap-6">
-            <button onClick={() => setShowStartupHome(true)} className="text-[9px] font-bold uppercase tracking-widest text-neutral-500 hover:text-white transition-colors">Accueil</button>
+          <div className="flex items-center gap-3 sm:gap-6">
+            <button onClick={() => setShowStartupHome(true)} className="text-xs font-bold uppercase tracking-[0.12em] sm:tracking-widest text-neutral-500 hover:text-white transition-colors">Accueil</button>
             {user ? (
               <button
                 onClick={() => {
@@ -154,12 +154,12 @@ const App: React.FC = () => {
                   setUser(null);
                   setShowStartupHome(true);
                 }}
-                className="text-[9px] font-bold uppercase tracking-widest text-neutral-500 hover:text-white transition-colors"
+                className="text-xs font-bold uppercase tracking-[0.12em] sm:tracking-widest text-neutral-500 hover:text-white transition-colors"
               >
                 Déconnexion
               </button>
             ) : (
-              <button onClick={() => setShowLoginView(true)} className="text-[9px] font-bold uppercase tracking-widest text-white transition-colors">Connexion</button>
+              <button onClick={() => setShowLoginView(true)} className="text-xs font-bold uppercase tracking-[0.12em] sm:tracking-widest text-white transition-colors">Connexion</button>
             )}
           </div>
         </header>
@@ -217,18 +217,18 @@ const App: React.FC = () => {
           )}
         </main>
 
-        <nav className="flex-none bg-black border-t border-white/5 p-4 flex justify-around items-center">
-          <button onClick={() => setActiveTab('guided')} className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'guided' ? 'text-white' : 'text-neutral-600'}`}>
-            <span className="text-[8px] font-bold uppercase tracking-[0.2em]">Diagnostic</span>
+        <nav className="flex-none bg-black border-t border-white/5 p-2 sm:p-4 grid grid-cols-4 gap-1 items-center">
+          <button onClick={() => setActiveTab('guided')} className={`min-h-[44px] px-1 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'guided' ? 'text-white' : 'text-neutral-600'}`}>
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.08em] sm:tracking-[0.2em]">Diagnostic</span>
           </button>
-          <button onClick={() => setActiveTab('smart_booking')} className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'smart_booking' ? 'text-white' : 'text-neutral-600'}`}>
-            <span className="text-[8px] font-bold uppercase tracking-[0.2em]">Smart Booking</span>
+          <button onClick={() => setActiveTab('smart_booking')} className={`min-h-[44px] px-1 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'smart_booking' ? 'text-white' : 'text-neutral-600'}`}>
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.08em] sm:tracking-[0.2em]">Smart Booking</span>
           </button>
-          <button onClick={() => { if (!user) setShowLoginView(true); else setActiveTab('live'); }} className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'live' ? 'text-white' : 'text-neutral-600'}`}>
-            <span className="text-[8px] font-bold uppercase tracking-[0.2em]">Live Support</span>
+          <button onClick={() => { if (!user) setShowLoginView(true); else setActiveTab('live'); }} className={`min-h-[44px] px-1 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'live' ? 'text-white' : 'text-neutral-600'}`}>
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.08em] sm:tracking-[0.2em]">Live Support</span>
           </button>
-          <button onClick={() => setActiveTab('appointment')} className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'appointment' ? 'text-white' : 'text-neutral-600'}`}>
-            <span className="text-[8px] font-bold uppercase tracking-[0.2em]">Rendez-vous</span>
+          <button onClick={() => setActiveTab('appointment')} className={`min-h-[44px] px-1 flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'appointment' ? 'text-white' : 'text-neutral-600'}`}>
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.08em] sm:tracking-[0.2em]">Rendez-vous</span>
           </button>
         </nav>
       </div>
