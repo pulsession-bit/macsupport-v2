@@ -69,7 +69,7 @@ export const LiveTab: React.FC<LiveTabProps> = ({
         onChange={(e) => setTextInput(e.target.value)}
         placeholder="Écrire un message..."
         disabled={status !== 'connected'}
-        className="flex-1 bg-transparent text-white text-xs placeholder-neutral-600 outline-none disabled:opacity-30"
+        className="flex-1 bg-transparent text-white text-base placeholder-neutral-500 outline-none disabled:opacity-30"
       />
       <button
         type="submit"

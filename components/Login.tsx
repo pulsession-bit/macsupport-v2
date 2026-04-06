@@ -103,7 +103,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onCancel, showCanc
                     type="email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-neutral-900 border border-white/10 rounded-2xl px-6 py-5 text-white placeholder:text-neutral-600 focus:border-white/30 focus:bg-neutral-800 transition-all outline-none text-sm font-medium"
+                    className="w-full bg-neutral-900 border border-white/10 rounded-2xl px-6 py-5 text-white placeholder:text-neutral-600 focus:border-white/30 focus:bg-neutral-800 transition-all outline-none text-base font-medium"
                     placeholder="Email professionnel"
                     required
                  />
@@ -111,7 +111,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onCancel, showCanc
                     type="password" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-neutral-900 border border-white/10 rounded-2xl px-6 py-5 text-white placeholder:text-neutral-600 focus:border-white/30 focus:bg-neutral-800 transition-all outline-none text-sm font-medium"
+                    className="w-full bg-neutral-900 border border-white/10 rounded-2xl px-6 py-5 text-white placeholder:text-neutral-600 focus:border-white/30 focus:bg-neutral-800 transition-all outline-none text-base font-medium"
                     placeholder="Mot de passe"
                     required
                  />
