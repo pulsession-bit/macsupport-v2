@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:vestee:runner": "npm --prefix vestee-runner run test:vestee"
   },
   "dependencies": {
     "react": "^19.2.1",

@@ -120,7 +120,7 @@ export function useGeminiLive({
         };
         setIsScreenSharing(true);
         sessionPromiseRef.current?.then(s => s.sendClientContent({
-          turns: [{ role: 'user', parts: [{ text: "[SCREEN_SHARE_START] L'utilisateur vient d'activer le partage d'écran ! Prends la parole IMMÉDIATEMENT pour dire que tu vois l'écran et commence à guider." }] }],
+          turns: [{ role: 'user', parts: [{ text: "[SCREEN_SHARE_START] Le partage d'écran est actif." }] }],
           turnComplete: false
         }));
       } catch (e) {
@@ -154,7 +154,7 @@ export function useGeminiLive({
         }
         setIsCameraActive(true);
         sessionPromiseRef.current?.then(s => s.sendClientContent({
-          turns: [{ role: 'user', parts: [{ text: "[CAMERA_START] L'utilisateur vient d'activer sa caméra mobile/externe ! Prends la parole IMMÉDIATEMENT pour dire que tu vois le flux vidéo et examine ce qu'il te montre." }] }],
+          turns: [{ role: 'user', parts: [{ text: "[CAMERA_START] La caméra est active." }] }],
           turnComplete: false
         }));
       } catch (e) {
@@ -212,10 +212,10 @@ export function useGeminiLive({
       userAnalyserRef.current.fftSize = 256;
 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const deviceContext = `\n[DEVICE_INFO] L'utilisateur est sur ${isMobile ? 'MOBILE (iPhone/Android). Il a un bouton "Activer caméra" pour te montrer son environnement. PROPOSE lui principalement d\'utiliser sa caméra s\'il doit montrer un objet.' : 'ORDINATEUR. Il a un bouton "Partager écran" pour te montrer son affichage. PROPOSE lui le partage d\'écran s\'il doit montrer un problème logiciel.'}`;
+      const deviceContext = `\n[DEVICE_CONTEXT]\nhost_device détecté : ${isMobile ? 'MOBILE' : 'DESKTOP'}.\nUtilise cette information comme contexte de départ, sans la redemander sauf contradiction.\n${isMobile ? "Si MOBILE : la caméra mobile peut être proposée pour montrer un Mac ou un accessoire." : "Si DESKTOP : le partage d’écran peut être proposé pour montrer un problème logiciel."}`;
 
       const contextPrompt = Object.keys(techContext).length > 0
-        ? `\n\n[SYSTEM_DATA_INJECTION]\nCONTEXTE TECHNIQUE PRÉ-ÉTABLI (Utiliser pour le diagnostic, ne pas lire le JSON à haute voix, confirmer simplement "Je vois le contexte" si pertinent):\n${JSON.stringify(techContext)}`
+        ? `\n\n[SYSTEM_DATA_INJECTION]\nCONTEXTE TECHNIQUE PRÉ-ÉTABLI.\nUtiliser pour le diagnostic.\nNe jamais lire le JSON à haute voix.\nNe jamais redemander ce qui est déjà confirmé sauf contradiction ou manque de précision.\n${JSON.stringify(techContext)}`
         : "";
       const reconnectPrompt = isReconnectRef.current
         ? `\n\n[RECONNEXION SESSION] Tu reprends une session en cours à cause d'une coupure réseau. NE PAS répéter le message d'ouverture. NE PAS dire bonjour. Reste totalement silencieux et attends simplement la prochaine intervention de l'utilisateur ou continue ta réponse précédente.`
@@ -244,7 +244,7 @@ export function useGeminiLive({
               pendingScreenStreamRef.current = null;
             }
 
-            // Auto-refresh every 270s to prevent Gemini Live timeout
+            // Auto-refresh every 270s to prevent Gemini Live timeout (Gemini limit is ~5-10 mins continuous)
             if (reconnectIntervalRef.current) clearInterval(reconnectIntervalRef.current);
             reconnectIntervalRef.current = window.setInterval(() => {
               isReconnectRef.current = true;
@@ -259,7 +259,15 @@ export function useGeminiLive({
 
             if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
             if (!isReconnectRef.current) setSessionTime(0);
-            timeIntervalRef.current = window.setInterval(() => setSessionTime(prev => prev + 1), 1000);
+            timeIntervalRef.current = window.setInterval(() => {
+              setSessionTime(prev => {
+                if (prev >= 600) { // 10 minutes limit
+                  disconnect();
+                  return prev;
+                }
+                return prev + 1;
+              });
+            }, 1000);
 
             const source = inputAudioContextRef.current!.createMediaStreamSource(stream);
             const scriptProcessor = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
@@ -278,23 +286,24 @@ export function useGeminiLive({
             scriptProcessor.connect(muteNode);
             muteNode.connect(inputAudioContextRef.current!.destination);
 
-            // Screen share frames only: 1 frame/5s, resolution ÷5, quality 0.6
+            // Capture frequency: 1 frame/second (increased latency performance)
+            // Note: Token usage is mitigated by 8x downscaling and 0.5 JPEG quality.
             const ctx = canvasRef.current?.getContext('2d');
             if (ctx && videoRef.current) {
               frameIntervalRef.current = window.setInterval(() => {
                 if (!sessionPromiseRef.current) return;
                 if (!screenStreamRef.current?.active && !cameraStreamRef.current?.active) return;
                 if (videoRef.current && canvasRef.current && videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
-                  canvasRef.current.width = Math.round(videoRef.current.videoWidth / 5);
-                  canvasRef.current.height = Math.round(videoRef.current.videoHeight / 5);
+                  canvasRef.current.width = Math.round(videoRef.current.videoWidth / 8);
+                  canvasRef.current.height = Math.round(videoRef.current.videoHeight / 8);
                   ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
                   canvasRef.current.toBlob(async (blob) => {
                     if (!sessionPromiseRef.current || !blob) return;
                     const base64Data = await blobToBase64(blob);
                     sessionPromise.then(s => s.sendRealtimeInput({ media: { data: base64Data, mimeType: 'image/jpeg' } }));
-                  }, 'image/jpeg', 0.6);
+                  }, 'image/jpeg', 0.5);
                 }
-              }, 5000);
+              }, 1000);
             }
           },
           onmessage: async (msg: LiveServerMessage) => {
