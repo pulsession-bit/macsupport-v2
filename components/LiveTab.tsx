@@ -88,8 +88,8 @@ export const LiveTab: React.FC<LiveTabProps> = ({
       {/* Main video/audio area */}
       <div className="flex-1 relative flex flex-col h-full overflow-hidden">
         <div className="absolute inset-0 z-0 bg-neutral-900 flex items-center justify-center">
-          {(!isScreenSharing && !isCameraActive) ? (
-            <div className="flex flex-col items-center gap-6 opacity-20">
+          {(!isScreenSharing && !isCameraActive) && (
+            <div className="flex flex-col items-center gap-6 opacity-20 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
               <div className="w-32 h-32 rounded-full border-4 border-white/20 animate-pulse flex items-center justify-center">
                 <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
@@ -97,9 +97,14 @@ export const LiveTab: React.FC<LiveTabProps> = ({
               </div>
               <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white">Audio Link Active</span>
             </div>
-          ) : (
-            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
           )}
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`w-full h-full object-contain ${(isScreenSharing || isCameraActive) ? 'block' : 'hidden'}`}
+          />
           <canvas ref={canvasRef} className="hidden" />
         </div>
 
@@ -132,9 +137,9 @@ export const LiveTab: React.FC<LiveTabProps> = ({
         </div>
 
         {/* Center: error state + mobile transcript */}
-        <div className="relative z-10 flex-1 flex items-center justify-center p-6">
+        <div className="relative z-10 flex-1 flex flex-col p-6 min-h-0">
           {status === 'error' && (
-            <div className="text-center p-6 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 mx-auto max-w-sm">
+            <div className="text-center p-6 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 mx-auto max-w-sm my-auto">
               <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-4">Échec de connexion</p>
               <p className="text-neutral-400 text-xs mb-6">Vérifiez votre micro/caméra ou votre réseau.</p>
               <button
@@ -146,15 +151,17 @@ export const LiveTab: React.FC<LiveTabProps> = ({
             </div>
           )}
 
-          <div className="lg:hidden w-full h-full overflow-y-auto space-y-4 mask-image-gradient">
-            <TranscriptFeed
-              history={transcriptionHistory}
-              realtimeInput={realtimeInput}
-              realtimeOutput={realtimeOutput}
-              endRef={chatEndRef}
-              variant="mobile"
-            />
-          </div>
+          {status !== 'error' && (
+            <div className="lg:hidden flex-1 w-full overflow-y-auto space-y-4 mask-image-gradient pb-6">
+              <TranscriptFeed
+                history={transcriptionHistory}
+                realtimeInput={realtimeInput}
+                realtimeOutput={realtimeOutput}
+                endRef={chatEndRef}
+                variant="mobile"
+              />
+            </div>
+          )}
         </div>
 
         {/* Mobile text input */}

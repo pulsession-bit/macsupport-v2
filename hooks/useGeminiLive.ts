@@ -81,6 +81,7 @@ export function useGeminiLive({
 
     sourcesRef.current.forEach(s => s.stop());
     sourcesRef.current.clear();
+    nextStartTimeRef.current = 0;
 
     if (videoRef.current) videoRef.current.srcObject = null;
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
