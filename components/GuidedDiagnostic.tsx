@@ -185,7 +185,7 @@ export const GuidedDiagnostic: React.FC<GuidedDiagnosticProps> = ({ techContext,
   const currentStatus = selections[1]?.severity || '-';
 
   return (
-    <div className="flex w-full h-full bg-[#050505] overflow-hidden font-sans">
+    <div className="flex w-full h-full bg-[#050505] overflow-y-auto lg:overflow-hidden font-sans">
       
       {/* LEFT PANE - MAIN INTERACTION (75%) */}
       <div className="flex-1 flex flex-col relative border-r border-white/5">
@@ -232,16 +232,18 @@ export const GuidedDiagnostic: React.FC<GuidedDiagnosticProps> = ({ techContext,
             ))}
           </div>
 
-          <button 
-            onClick={onRequestAccessPro}
-            className="min-h-[44px] px-5 py-3 bg-white text-black rounded-full text-xs font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] hover:scale-105 transition-transform"
-          >
-            Accès Pro
-          </button>
+          {(!auth.currentUser || auth.currentUser?.isAnonymous) && (
+            <button 
+              onClick={onRequestAccessPro}
+              className="min-h-[44px] px-5 py-3 bg-white text-black rounded-full text-xs font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] hover:scale-105 transition-transform"
+            >
+              Accès Pro
+            </button>
+          )}
         </header>
 
         {/* CONTENT AREA */}
-        <div className="flex-1 flex flex-col justify-center px-4 sm:px-8 lg:px-24 xl:px-32 relative">
+        <div className="flex-1 flex flex-col justify-center px-4 sm:px-8 lg:px-24 xl:px-32 relative overflow-y-auto">
           
           {currentStep < 5 ? (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -295,7 +297,7 @@ export const GuidedDiagnostic: React.FC<GuidedDiagnosticProps> = ({ techContext,
           )}
 
           {/* PROGRESS FOOTER (Inside Left Pane) */}
-          <div className="absolute bottom-12 left-8 right-8 lg:left-24 lg:right-24">
+          <div className="mt-8 mb-4 lg:mb-0 lg:absolute lg:bottom-12 lg:left-24 lg:right-24">
              <div className="flex justify-between items-center text-xs font-black uppercase tracking-[0.08em] sm:tracking-[0.2em] text-neutral-600 mb-3">
                 <span>Séquence {currentStep} / 5</span>
                 <span>{Math.min(100, Math.round((currentStep / 5) * 100))}%</span>
