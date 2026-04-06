@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Vestee — Seed Base de Connaissances</title>
+  <style>
+    body { font-family: monospace; background: #0a0a0a; color: #e2e8f0; padding: 2rem; }
+    h1 { color: #34d399; }
+    button { background: #34d399; color: black; font-weight: bold; padding: 1rem 2rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; margin-top: 1rem; }
+    button:disabled { background: #444; color: #888; cursor: not-allowed; }
+    #log { margin-top: 1.5rem; background: #111; padding: 1rem; border-radius: 8px; border: 1px solid #222; min-height: 200px; white-space: pre-wrap; }
+    .ok { color: #34d399; }
+    .err { color: #f87171; }
+    .info { color: #60a5fa; }
+  </style>
+</head>
+<body>
+  <h1>🌱 Vestee — Peuplement Base de Connaissances</h1>
+  <p>Ce script insère les articles de réparation dans <strong>macbook-1e222 → macAssist/v1/knowledge</strong></p>
+  <button id="btn" onclick="seed()">Lancer le seeding (6 articles)</button>
+  <div id="log">En attente...</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB3CNMnvWipHsMK193vhFgmYuVgMaAJgiI",
+      authDomain: "macbook-1e222.firebaseapp.com",
+      projectId: "macbook-1e222",
+      storageBucket: "macbook-1e222.firebasestorage.app",
+      appId: "1:67498652056:web:4f444b32a1ef792f693bed",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const ARTICLES = [
+      {
+        id: "apple-silicon-smc-reset",
+        title: "Réinitialisation SMC/NVRAM — Apple Silicon (M1, M2, M3, M4)",
+        category: "reset",
+        keywords: ["smc", "nvram", "pram", "reset", "redémarrage", "forcé", "bloqué", "frozen", "freeze", "m1", "m2", "m3", "m4", "apple", "silicon", "touch", "power", "bouton"],
+        content: `Sur les Mac Apple Silicon (M1/M2/M3/M4), il n'y a plus de SMC traditionnel.
+
+RÉINITIALISATION FORCÉE (équivalent SMC) :
+1. Éteignez le Mac complètement
+2. Maintenez le bouton Touch ID/Power pendant 10 secondes
+3. Relâchez, attendez 3 sec, rallumez
+
+RÉINITIALISATION NVRAM :
+- Automatique sur Apple Silicon, aucune combinaison clavier nécessaire
+- Cmd+Option+P+R est uniquement pour les Mac Intel
+
+SI LE MAC NE RÉPOND PLUS :
+1. Débranchez l'adaptateur secteur
+2. Attendez 15 secondes
+3. Rebranchez et maintenez Touch ID 10 secondes`
+      },
+      {
+        id: "macos-sequoia-issues",
+        title: "Problèmes connus macOS Sequoia 15 (2024)",
+        category: "os",
+        keywords: ["sequoia", "macos", "bug", "wifi", "bluetooth", "thunderbolt", "usb", "lent", "lenteur", "plantage", "crash", "2024", "réseau", "connexion", "mise", "jour"],
+        content: `Problèmes connus macOS Sequoia 15.x :
+
+WIFI/RÉSEAU :
+- Sequoia 15.0 avait des bugs WiFi → Mettre à jour en 15.1 minimum
+- Solution: Désactiver/réactiver WiFi, ou oublier le réseau et se reconnecter
+
+THUNDERBOLT/USB-C :
+- Hubs USB-C tiers incompatibles sous Sequoia 15.0
+- Bug Thunderbolt 4 sur M4 corrigé dans Sequoia 15.1
+
+LENTEURS :
+- Spotlight réindexe après upgrade (2-3h, normal)
+- Si persistant: sudo mdutil -a -i off dans Terminal
+
+APPLICATIONS QUI PLANTENT :
+- Vérifier les mises à jour
+- Réinstaller via l'App Store`
+      },
+      {
+        id: "macbook-black-screen",
+        title: "Écran noir MacBook — Diagnostic et solutions",
+        category: "display",
+        keywords: ["écran", "noir", "black", "screen", "affichage", "display", "allume", "allumage", "démarrage", "boot", "image", "luminosité", "éteint"],
+        content: `Diagnostic écran noir MacBook :
+
+ÉTAPE 1 - Vérifier si le Mac est allumé :
+- Écouter le son de démarrage
+- Mettre des écouteurs pour entendre le son de connexion
+- Appuyer une touche pour entendre le clavier
+
+ÉTAPE 2 - Luminosité :
+- Appuyer sur F2 (luminosité+) plusieurs fois
+- La luminosité peut être à 0
+
+ÉTAPE 3 - Reset :
+- Apple Silicon: Maintenir Touch ID 10 secondes
+- Intel: Cmd+Ctrl+Eject pour redémarrer de force
+
+ÉTAPE 4 - Mode Sans Échec :
+- Apple Silicon: Maintenir Touch ID → options de démarrage → disque + Shift
+- Intel: Redémarrer + maintenir Shift
+
+ÉTAPE 5 - Écran externe :
+- Connecter HDMI/USB-C à un moniteur
+- Image visible → problème écran LCD interne
+- Rien → problème carte mère`
+      },
+      {
+        id: "macbook-battery-issues",
+        title: "Problèmes de batterie MacBook — Diagnostic",
+        category: "battery",
+        keywords: ["batterie", "battery", "charge", "chargeur", "autonomie", "pourcentage", "décharge", "rapide", "lente", "état", "cycles", "magsafe", "usb-c", "branché"],
+        content: `Diagnostic batterie MacBook :
+
+VÉRIFIER L'ÉTAT :
+- Pomme > À propos > Informations système > Alimentation
+- État: doit être "Normal" ou "Bon état"
+- Cycles: max ~1000 pour MacBook récents
+
+CHARGE LENTE/PAS DE CHARGE :
+1. Tester avec un autre câble USB-C
+2. Changer de port USB-C
+3. Nettoyer le port (brosse douce antistatique)
+4. Reset: maintenir Touch ID 10 secondes
+
+DÉCHARGE RAPIDE :
+- Menu batterie > Apps utilisant beaucoup d'énergie
+- Réduire luminosité de l'écran
+- Désactiver iCloud sync en utilisation intensive
+
+BATTERIE À 0% :
+- Brancher 30 min avant de tenter l'allumage
+- Si toujours rien → garantie Apple si <1 an`
+      },
+      {
+        id: "macbook-m4-specifics",
+        title: "Spécificités MacBook Pro M4 (2024) — A3290/A3291",
+        category: "hardware",
+        keywords: ["m4", "2024", "a3290", "a3291", "nouveau", "récent", "dernier", "modèle", "thunderbolt", "hdmi", "magsafe", "nano", "texture", "m4pro", "m4max"],
+        content: `MacBook Pro M4 / M4 Pro / M4 Max (Nov 2024) :
+
+MATÉRIEL :
+- M4: 10 cœurs CPU, 10 GPU, 16 Go RAM min
+- M4 Pro: 14 cœurs CPU, 20 GPU, 24-48 Go RAM
+- M4 Max: 16 cœurs CPU, 40 GPU, 36-128 Go RAM
+- Port HDMI 2.1 (8K) + 3x Thunderbolt 5 (Pro/Max)
+- MagSafe 3 pour la charge
+
+NANO-TEXTURE GLASS :
+- Nettoyer UNIQUEMENT avec le chiffon Apple fourni
+- Pas d'alcool, pas de spray
+
+PROBLÈMES CONNUS :
+- Thunderbolt 5 incompatible avec docks Thunderbolt 3 sans firmware
+- Corrigé dans macOS Sequoia 15.1+
+- Moniteurs 4K@144Hz: câble certifié Thunderbolt 5 requis
+
+RESET M4 :
+- Maintenir Touch ID 10 secondes (identique aux autres Apple Silicon)`
+      },
+      {
+        id: "macbook-intel-diagnostics",
+        title: "Diagnostics MacBook Intel (2015-2020) — SMC, NVRAM, Récupération",
+        category: "reset",
+        keywords: ["intel", "smc", "nvram", "pram", "recovery", "récupération", "cmd", "option", "2015", "2016", "2017", "2018", "2019", "2020", "t2", "t1"],
+        content: `Diagnostics MacBook Intel :
+
+RESET SMC avec puce T2 (2018-2020) :
+1. Éteindre le Mac
+2. Maintenir Ctrl(gauche)+Option(gauche)+Maj(droite) pendant 7 sec
+3. Ajouter le bouton Power, maintenir encore 7 sec
+4. Relâcher tout, attendre 5 sec, rallumer
+
+RESET SMC sans T2 (avant 2018) :
+- Ctrl(gauche)+Option(gauche)+Maj(droite)+Power pendant 10 sec
+- Rallumer normalement
+
+RESET NVRAM/PRAM (Intel uniquement) :
+- Allumer + immédiatement Cmd+Option+P+R
+- Maintenir jusqu'au 2e son de démarrage (~20 sec)
+
+MODE RÉCUPÉRATION (Intel) :
+- Cmd+R au démarrage → macOS Recovery
+- Cmd+Option+R → réinstaller compatible
+- Diagnostics Apple: D au démarrage (ou Option+D)`
+      },
+    ];
+
+    window.seed = async function() {
+      const btn = document.getElementById('btn');
+      const log = document.getElementById('log');
+      btn.disabled = true;
+      log.innerHTML = '<span class="info">🚀 Connexion à Firestore macbook-1e222...</span>\n';
+
+      try {
+        for (const article of ARTICLES) {
+          const ref = doc(db, `macAssist/v1/knowledge/${article.id}`);
+          await setDoc(ref, { ...article, updatedAt: new Date().toISOString() });
+          log.innerHTML += `<span class="ok">✅ ${article.id}</span>\n`;
+          log.scrollTop = log.scrollHeight;
+        }
+        log.innerHTML += `\n<span class="ok">🎉 ${ARTICLES.length} articles insérés avec succès dans macbook-1e222 → macAssist/v1/knowledge</span>`;
+      } catch(e) {
+        log.innerHTML += `<span class="err">❌ Erreur: ${e.message}</span>`;
+        btn.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>

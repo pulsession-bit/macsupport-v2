@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Vestee Frontend (Vite)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:$PATH && cd /Users/raphael/Sites/vestee && npm run dev"],
+      "port": 3000
+    },
+    {
+      "name": "Vestee Backend (Express)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:$PATH && cd /Users/raphael/Sites/vestee/backend && node --watch index.js"],
+      "port": 8080
+    }
+  ]
+}

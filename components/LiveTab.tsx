@@ -6,6 +6,7 @@ import { TranscriptFeed } from './TranscriptFeed';
 interface LiveTabProps {
   status: ConnectionStatus;
   isScreenSharing: boolean;
+  isCameraActive: boolean;
   sessionTime: number;
   userVolume: number;
   agentVolume: number;
@@ -15,6 +16,7 @@ interface LiveTabProps {
   videoRef: React.RefObject<HTMLVideoElement>;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   onToggleScreenShare: () => void;
+  onToggleCamera: () => void;
   onReconnect: () => void;
   onDisconnect: () => void;
   onNavigateToGuided: () => void;
@@ -24,6 +26,7 @@ interface LiveTabProps {
 export const LiveTab: React.FC<LiveTabProps> = ({
   status,
   isScreenSharing,
+  isCameraActive,
   sessionTime,
   userVolume,
   agentVolume,
@@ -33,6 +36,7 @@ export const LiveTab: React.FC<LiveTabProps> = ({
   videoRef,
   canvasRef,
   onToggleScreenShare,
+  onToggleCamera,
   onReconnect,
   onDisconnect,
   onNavigateToGuided,
@@ -83,8 +87,19 @@ export const LiveTab: React.FC<LiveTabProps> = ({
     <div className="flex-1 flex flex-col lg:flex-row h-full bg-black overflow-hidden relative">
       {/* Main video/audio area */}
       <div className="flex-1 relative flex flex-col h-full overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+        <div className="absolute inset-0 z-0 bg-neutral-900 flex items-center justify-center">
+          {(!isScreenSharing && !isCameraActive) ? (
+            <div className="flex flex-col items-center gap-6 opacity-20">
+              <div className="w-32 h-32 rounded-full border-4 border-white/20 animate-pulse flex items-center justify-center">
+                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white">Audio Link Active</span>
+            </div>
+          ) : (
+            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
+          )}
           <canvas ref={canvasRef} className="hidden" />
         </div>
 
@@ -150,16 +165,31 @@ export const LiveTab: React.FC<LiveTabProps> = ({
         {/* Controls */}
         <div className="relative z-10 p-8 flex justify-center gap-4">
           {status === 'connected' && (
-            <button
-              onClick={onToggleScreenShare}
-              className={`px-6 py-5 border rounded-full text-[9px] font-black uppercase tracking-[0.4em] transition-all shadow-lg backdrop-blur-sm ${
-                isScreenSharing
-                  ? 'bg-blue-600/20 border-blue-600/40 text-blue-400 hover:bg-blue-600 hover:text-white'
-                  : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              {isScreenSharing ? 'Arrêter partage' : 'Partager écran'}
-            </button>
+            <>
+              {/* Screen Share - Only on Desktop (lg) */}
+              <button
+                onClick={onToggleScreenShare}
+                className={`hidden lg:block px-6 py-5 border rounded-full text-[9px] font-black uppercase tracking-[0.4em] transition-all shadow-lg backdrop-blur-sm ${
+                  isScreenSharing
+                    ? 'bg-blue-600/20 border-blue-600/40 text-blue-400 hover:bg-blue-600 hover:text-white'
+                    : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {isScreenSharing ? 'Arrêter partage' : 'Partager écran'}
+              </button>
+
+              {/* Camera - Only on Mobile (< lg) */}
+              <button
+                onClick={onToggleCamera}
+                className={`lg:hidden px-6 py-5 border rounded-full text-[9px] font-black uppercase tracking-[0.4em] transition-all shadow-lg backdrop-blur-sm ${
+                  isCameraActive
+                    ? 'bg-emerald-600/20 border-emerald-600/40 text-emerald-400 hover:bg-emerald-600 hover:text-white'
+                    : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {isCameraActive ? 'Arrêter caméra' : 'Activer caméra'}
+              </button>
+            </>
           )}
           <button
             onClick={() => { onDisconnect(); onNavigateToGuided(); }}

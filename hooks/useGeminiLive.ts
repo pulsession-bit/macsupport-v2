@@ -21,6 +21,7 @@ export function useGeminiLive({
 }: UseGeminiLiveOptions) {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const [sessionTime, setSessionTime] = useState(0);
   const [userVolume, setUserVolume] = useState(0);
   const [agentVolume, setAgentVolume] = useState(0);
@@ -41,6 +42,7 @@ export function useGeminiLive({
   const timeIntervalRef = useRef<number | null>(null);
   const reconnectIntervalRef = useRef<number | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const isReconnectRef = useRef<boolean>(false);
   const pendingScreenStreamRef = useRef<MediaStream | null>(null);
@@ -65,7 +67,10 @@ export function useGeminiLive({
     if (frameIntervalRef.current) clearInterval(frameIntervalRef.current);
     screenStreamRef.current?.getTracks().forEach(t => t.stop());
     screenStreamRef.current = null;
+    cameraStreamRef.current?.getTracks().forEach(t => t.stop());
+    cameraStreamRef.current = null;
     setIsScreenSharing(false);
+    setIsCameraActive(false);
     mediaStreamRef.current = null;
     sessionPromiseRef.current?.then(s => s.close());
     sessionPromiseRef.current = null;
@@ -92,12 +97,15 @@ export function useGeminiLive({
     if (isScreenSharing) {
       screenStreamRef.current?.getTracks().forEach(t => t.stop());
       screenStreamRef.current = null;
-      if (videoRef.current && mediaStreamRef.current) {
-        videoRef.current.srcObject = mediaStreamRef.current;
-      }
+      if (videoRef.current) videoRef.current.srcObject = null;
       setIsScreenSharing(false);
     } else {
       try {
+        if (isCameraActive) {
+          cameraStreamRef.current?.getTracks().forEach(t => t.stop());
+          cameraStreamRef.current = null;
+          setIsCameraActive(false);
+        }
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
         screenStream.getAudioTracks().forEach(t => t.stop());
         screenStreamRef.current = screenStream;
@@ -107,21 +115,53 @@ export function useGeminiLive({
         }
         screenStream.getVideoTracks()[0].onended = () => {
           screenStreamRef.current = null;
-          if (videoRef.current && mediaStreamRef.current) {
-            videoRef.current.srcObject = mediaStreamRef.current;
-          }
+          if (videoRef.current) videoRef.current.srcObject = null;
           setIsScreenSharing(false);
         };
         setIsScreenSharing(true);
         sessionPromiseRef.current?.then(s => s.sendClientContent({
-          turns: [{ role: 'user', parts: [{ text: "[SCREEN_SHARE_START] L'utilisateur vient d'activer le partage d'écran ! Prends la parole IMMÉDIATEMENT pour le dire (ex: 'C'est parfait, je vois votre écran maintenant') et commence à le guider activement pour la réparation grâce à ce que tu vois." }] }],
+          turns: [{ role: 'user', parts: [{ text: "[SCREEN_SHARE_START] L'utilisateur vient d'activer le partage d'écran ! Prends la parole IMMÉDIATEMENT pour dire que tu vois l'écran et commence à guider." }] }],
           turnComplete: false
         }));
       } catch (e) {
         console.warn("Partage d'écran annulé ou refusé", e);
       }
     }
-  }, [isScreenSharing]);
+  }, [isScreenSharing, isCameraActive]);
+
+  const toggleCamera = useCallback(async () => {
+    if (isCameraActive) {
+      cameraStreamRef.current?.getTracks().forEach(t => t.stop());
+      cameraStreamRef.current = null;
+      if (videoRef.current) videoRef.current.srcObject = null;
+      setIsCameraActive(false);
+    } else {
+      try {
+        if (isScreenSharing) {
+          screenStreamRef.current?.getTracks().forEach(t => t.stop());
+          screenStreamRef.current = null;
+          setIsScreenSharing(false);
+        }
+        // Prefer environment camera (back camera) on mobile devices
+        const cameraStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' }, 
+          audio: false 
+        });
+        cameraStreamRef.current = cameraStream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = cameraStream;
+          videoRef.current.play().catch(() => {});
+        }
+        setIsCameraActive(true);
+        sessionPromiseRef.current?.then(s => s.sendClientContent({
+          turns: [{ role: 'user', parts: [{ text: "[CAMERA_START] L'utilisateur vient d'activer sa caméra mobile/externe ! Prends la parole IMMÉDIATEMENT pour dire que tu vois le flux vidéo et examine ce qu'il te montre." }] }],
+          turnComplete: false
+        }));
+      } catch (e) {
+        console.warn("Accès caméra refusé", e);
+      }
+    }
+  }, [isCameraActive, isScreenSharing]);
 
   // Expose to allow pre-init within a user gesture (autoplay policy)
   const preInitAudio = useCallback(() => {
@@ -171,6 +211,9 @@ export function useGeminiLive({
       agentAnalyserRef.current.fftSize = 256;
       userAnalyserRef.current.fftSize = 256;
 
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const deviceContext = `\n[DEVICE_INFO] L'utilisateur est sur ${isMobile ? 'MOBILE (iPhone/Android). Il a un bouton "Activer caméra" pour te montrer son environnement. PROPOSE lui principalement d\'utiliser sa caméra s\'il doit montrer un objet.' : 'ORDINATEUR. Il a un bouton "Partager écran" pour te montrer son affichage. PROPOSE lui le partage d\'écran s\'il doit montrer un problème logiciel.'}`;
+
       const contextPrompt = Object.keys(techContext).length > 0
         ? `\n\n[SYSTEM_DATA_INJECTION]\nCONTEXTE TECHNIQUE PRÉ-ÉTABLI (Utiliser pour le diagnostic, ne pas lire le JSON à haute voix, confirmer simplement "Je vois le contexte" si pertinent):\n${JSON.stringify(techContext)}`
         : "";
@@ -183,7 +226,7 @@ export function useGeminiLive({
         model: MODEL_NAME,
         config: {
           responseModalities: [Modality.AUDIO],
-          systemInstruction: SYSTEM_INSTRUCTIONS[language] + contextPrompt + reconnectPrompt,
+          systemInstruction: SYSTEM_INSTRUCTIONS[language] + deviceContext + contextPrompt + reconnectPrompt,
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
           inputAudioTranscription: {},
           outputAudioTranscription: {},
@@ -240,7 +283,7 @@ export function useGeminiLive({
             if (ctx && videoRef.current) {
               frameIntervalRef.current = window.setInterval(() => {
                 if (!sessionPromiseRef.current) return;
-                if (!screenStreamRef.current?.getVideoTracks().length) return;
+                if (!screenStreamRef.current?.active && !cameraStreamRef.current?.active) return;
                 if (videoRef.current && canvasRef.current && videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
                   canvasRef.current.width = Math.round(videoRef.current.videoWidth / 5);
                   canvasRef.current.height = Math.round(videoRef.current.videoHeight / 5);
@@ -384,6 +427,7 @@ export function useGeminiLive({
   return {
     status,
     isScreenSharing,
+    isCameraActive,
     sessionTime,
     userVolume,
     agentVolume,
@@ -395,6 +439,7 @@ export function useGeminiLive({
     disconnect,
     reconnect,
     toggleScreenShare,
+    toggleCamera,
     preInitAudio,
     sendText,
   };

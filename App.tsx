@@ -93,11 +93,11 @@ const App: React.FC = () => {
   } = useSession();
 
   const {
-    status, isScreenSharing, sessionTime,
+    status, isScreenSharing, isCameraActive, sessionTime,
     userVolume, agentVolume,
     realtimeInput, realtimeOutput,
     videoRef, canvasRef,
-    disconnect, reconnect, toggleScreenShare, preInitAudio, sendText,
+    disconnect, reconnect, toggleScreenShare, toggleCamera, preInitAudio, sendText,
   } = useGeminiLive({
     language: 'fr',
     techContext,
@@ -198,6 +198,7 @@ const App: React.FC = () => {
             <LiveTab
               status={status}
               isScreenSharing={isScreenSharing}
+              isCameraActive={isCameraActive}
               sessionTime={sessionTime}
               userVolume={userVolume}
               agentVolume={agentVolume}
@@ -207,6 +208,7 @@ const App: React.FC = () => {
               videoRef={videoRef}
               canvasRef={canvasRef}
               onToggleScreenShare={toggleScreenShare}
+              onToggleCamera={toggleCamera}
               onReconnect={reconnect}
               onDisconnect={disconnect}
               onNavigateToGuided={() => setActiveTab('guided')}
