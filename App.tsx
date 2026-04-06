@@ -15,48 +15,48 @@ type AppTab = 'guided' | 'live' | 'appointment' | 'smart_booking';
 
 const StartupQuote: React.FC<{ onStart: () => void; onNavigateToRDV: () => void }> = ({ onStart, onNavigateToRDV }) => {
   return (
-    <div className="fixed inset-0 z-[100] bg-black text-white flex flex-col items-center justify-center p-8 overflow-hidden">
+    <div className="fixed inset-0 z-[100] bg-black text-white flex flex-col items-center justify-center p-4 sm:p-8 overflow-hidden">
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-600/10 rounded-full blur-[120px] animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-600/10 rounded-full blur-[120px] animate-pulse" />
 
-      <div className="max-w-4xl w-full flex flex-col items-center text-center space-y-12 animate-in fade-in zoom-in duration-1000">
-        <div className="w-24 h-24 bg-white/5 rounded-3xl flex items-center justify-center backdrop-blur-md border border-white/10 shadow-2xl">
-          <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="max-w-4xl w-full flex flex-col items-center text-center space-y-8 sm:space-y-12 animate-in fade-in zoom-in duration-1000">
+        <div className="w-16 h-16 sm:w-24 sm:h-24 bg-white/5 rounded-3xl flex items-center justify-center backdrop-blur-md border border-white/10 shadow-2xl">
+          <svg className="w-8 h-8 sm:w-12 sm:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
 
         <div className="space-y-6">
-          <h1 className="text-7xl md:text-9xl font-medium tracking-tighter text-white leading-tight">Vestee Support.</h1>
-          <p className="text-xl md:text-2xl font-light text-neutral-500 max-w-2xl mx-auto leading-relaxed">
+          <h1 className="text-4xl sm:text-6xl md:text-9xl font-medium tracking-tight sm:tracking-tighter text-white leading-tight">Vestee Support.</h1>
+          <p className="text-base sm:text-xl md:text-2xl font-light text-neutral-500 max-w-2xl mx-auto leading-relaxed">
             L'expertise technique réinventée par l'intelligence artificielle.
           </p>
         </div>
 
-        <div className="flex flex-col items-center gap-6 pt-12">
+        <div className="flex flex-col items-center gap-4 sm:gap-6 pt-4 sm:pt-12">
           <button
             onClick={onStart}
-            className="px-20 py-7 bg-white text-black rounded-full text-[12px] font-black uppercase tracking-[0.4em] hover:scale-105 transition-all active:scale-95 duration-500 shadow-[0_0_50px_rgba(255,255,255,0.2)]"
+            className="px-8 sm:px-14 md:px-20 py-4 sm:py-6 md:py-7 bg-white text-black rounded-full text-[10px] sm:text-[12px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] hover:scale-105 transition-all active:scale-95 duration-500 shadow-[0_0_50px_rgba(255,255,255,0.2)]"
           >
             Commencer le diagnostic
           </button>
           <button
             onClick={onNavigateToRDV}
-            className="text-[10px] font-bold uppercase tracking-[0.5em] text-neutral-600 hover:text-white transition-colors py-4 border-b border-white/0 hover:border-white/20"
+            className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.5em] text-neutral-600 hover:text-white transition-colors py-3 sm:py-4 border-b border-white/0 hover:border-white/20"
           >
             Prendre un rendez-vous expert
           </button>
         </div>
       </div>
 
-      <div className="absolute bottom-12 left-0 right-0 text-center flex flex-col gap-4">
+      <div className="absolute bottom-6 sm:bottom-12 left-0 right-0 text-center flex flex-col gap-3 sm:gap-4 px-4">
         <button
           onClick={onStart}
-          className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-500 hover:text-blue-400 transition-colors animate-pulse"
+          className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.3em] text-blue-500 hover:text-blue-400 transition-colors animate-pulse"
         >
           → Voir la Nouvelle Interface Diagnostic ←
         </button>
-        <p className="text-[11px] font-bold uppercase tracking-[0.5em] text-neutral-800">Vestee Support Pro v3.0</p>
+        <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.5em] text-neutral-800">Vestee Support Pro v3.0</p>
       </div>
     </div>
   );
